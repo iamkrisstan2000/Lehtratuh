@@ -8,6 +8,17 @@ and remove objects — without uploading anything anywhere.
 
 Everything runs on your own PC.
 
+## Screenshots 
+
+
+<img width="1919" height="1079" alt="Screenshot 2026-11-01 230823" src="https://github.com/user-attachments/assets/b4400f32-7a82-4ac4-b33c-a0785a4fb57b" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-01 230817" src="https://github.com/user-attachments/assets/7344a07b-da00-4a8a-bef0-119543bcc542" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-01 230530" src="https://github.com/user-attachments/assets/4eea0910-ca07-47e0-af1b-358557f160c9" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-01 230514" src="https://github.com/user-attachments/assets/ca13c586-0df9-4931-a2e7-900be6ba8a2b" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-01 230446" src="https://github.com/user-attachments/assets/f8a1d2b5-ac84-492e-bcb8-78fb45c04cf6" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-01 230827" src="https://github.com/user-attachments/assets/847a9713-d29b-4851-9ded-d720c3c21471" />
+
+
 ---
 
 ## Install
