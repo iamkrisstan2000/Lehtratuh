@@ -1,0 +1,1866 @@
+/* ==========================================================================
+   Lehtratuh — Fluent 2 design system
+   Windows 11 acrylic / mica surfaces, Segoe UI Variable type ramp.
+   Shell tint: 4% in light, 8% in dark (user spec), tunable in Settings.
+   ========================================================================== */
+
+:root {
+  --font-text: "Segoe UI Variable Text", "Segoe UI", Selawik, system-ui, -apple-system, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI Semibold", Selawik, system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", "SF Mono", monospace;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --titlebar-h: 46px;
+  --ease: cubic-bezier(0.13, 0.86, 0.16, 1);
+  --ease-out: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --dur: 160ms;
+
+  --accent: #0067c0;
+  --accent-text: #ffffff;
+
+  /* Shell tint: 4% light / 8% dark is the floor. Acrylic renders as a milky
+     veil on top of that (light leans milky, dark stays deep and glassy). */
+  --tint-light: 4;
+  --tint-dark: 8;
+  /* Light acrylic is deliberately close to Mica: a milky greyish-white veil that
+     desaturates the wallpaper rather than letting raw colour through. It sits
+     just under the Mica band (which resolves to ~0.62), which is what keeps it
+     *slightly* translucent instead of a second solid. Dark stays deep glass. */
+  --acrylic-light: 0.55;
+  --acrylic-dark: 0.55;
+  --acrylic-veil-light: 250, 250, 250;
+  /* Neutral grey, NOT a blue-black. A blue-tinted veil stacked on top of DWM's
+     own cool backdrop doubled the cast; neutral keeps the glass grey. */
+  --acrylic-veil-dark: 30, 30, 30;
+
+  /* The Home page header band. One value for every material, so the band reads
+     the same whether the window is acrylic, mica or lite. */
+  --home-bar-alpha: 0.02;
+  --home-bar-veil-light: 240, 240, 240;
+  --home-bar-veil-dark: 14, 16, 18;
+  --acrylic-titlebar-light: #f9f9f9;
+  --acrylic-titlebar-dark: #212121;
+
+  /* The viewer paints its own surface so nothing shows through the caption bar. */
+  --viewer-shell: #f6f6f6;
+}
+
+/* ---------------------------------------------------------------- themes */
+html[data-theme="light"] {
+  --tint: var(--tint-light);
+  --acrylic-veil: var(--acrylic-veil-light);
+  --acrylic-alpha: var(--acrylic-light);
+  --veil-rgb: 252, 252, 252;
+  /* Mica's light veil is whiter than the shared one on purpose. It composites
+     over a DWM backdrop that can still be mid-dark (Windows in dark mode while
+     the app is set to Light), and a 59% white veil over a dark backdrop lands at
+     rgb(159,161,166) — mid grey. A whiter veil pulls that back towards white
+     without turning the flat Lite surface blue. */
+  --mica-veil-light-rgb: 255, 255, 255;
+  --home-bar-veil: var(--home-bar-veil-light);
+  --text-1: #1b1b1b;
+  --text-2: #5c5c5c;
+  --text-3: #8a8a8a;
+  --text-on-accent: #fff;
+
+  --surface-card: rgba(255, 255, 255, 0.62);
+  --surface-card-hover: rgba(255, 255, 255, 0.80);
+  --surface-layer: rgba(255, 255, 255, 0.42);
+  --surface-layer-alt: rgba(255, 255, 255, 0.56);
+  --surface-solid: #f9f9f9;
+  --surface-flyout: rgba(249, 249, 249, 0.92);
+  --surface-input: rgba(255, 255, 255, 0.70);
+  --surface-input-focus: #ffffff;
+
+  --stroke-1: rgba(0, 0, 0, 0.0578);
+  --stroke-2: rgba(0, 0, 0, 0.0956);
+  --stroke-3: rgba(0, 0, 0, 0.16);
+
+  --hover-1: rgba(0, 0, 0, 0.037);
+  --hover-2: rgba(0, 0, 0, 0.055);
+  --pressed-1: rgba(0, 0, 0, 0.07);
+  --selected-1: rgba(0, 0, 0, 0.05);
+
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-4: 0 4px 8px rgba(0, 0, 0, 0.10), 0 0 2px rgba(0, 0, 0, 0.07);
+  --shadow-8: 0 8px 16px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.08);
+  --shadow-16: 0 16px 32px rgba(0, 0, 0, 0.16), 0 0 2px rgba(0, 0, 0, 0.10);
+  --shadow-28: 0 28px 48px rgba(0, 0, 0, 0.22), 0 0 6px rgba(0, 0, 0, 0.12);
+
+  --tile-bg: linear-gradient(140deg, #e8e8e8, #dcdcdc);
+  --tile-bg-dark: linear-gradient(140deg, #3a3a3a, #2b2b2b);
+  --stage-bg: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.35), rgba(232, 232, 232, 0.55));
+  --on-image: #ffffff;
+  --scroll-thumb: rgba(0, 0, 0, 0.28);
+  --scroll-thumb-hover: rgba(0, 0, 0, 0.42);
+}
+
+html[data-theme="dark"] {
+  --tint: var(--tint-dark);
+  --acrylic-veil: var(--acrylic-veil-dark);
+  --acrylic-alpha: var(--acrylic-dark);
+  --veil-rgb: 20, 20, 20;
+  --home-bar-veil: var(--home-bar-veil-dark);
+  --text-1: #f4f4f4;
+  --text-2: #c4c4c4;
+  --text-3: #9a9a9a;
+  --text-on-accent: #fff;
+
+  --surface-card: rgba(255, 255, 255, 0.052);
+  --surface-card-hover: rgba(255, 255, 255, 0.083);
+  --surface-layer: rgba(58, 58, 58, 0.42);
+  --surface-layer-alt: rgba(255, 255, 255, 0.044);
+  --surface-solid: #202020;
+  --surface-flyout: rgba(44, 44, 44, 0.92);
+  --surface-input: rgba(255, 255, 255, 0.062);
+  --surface-input-focus: rgba(255, 255, 255, 0.04);
+
+  --stroke-1: rgba(255, 255, 255, 0.075);
+  --stroke-2: rgba(255, 255, 255, 0.12);
+  --stroke-3: rgba(255, 255, 255, 0.18);
+
+  --hover-1: rgba(255, 255, 255, 0.06);
+  --hover-2: rgba(255, 255, 255, 0.085);
+  --pressed-1: rgba(255, 255, 255, 0.04);
+  --selected-1: rgba(255, 255, 255, 0.07);
+
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.22);
+  --shadow-4: 0 4px 8px rgba(0, 0, 0, 0.36), 0 0 2px rgba(0, 0, 0, 0.26);
+  --shadow-8: 0 8px 16px rgba(0, 0, 0, 0.42), 0 0 2px rgba(0, 0, 0, 0.30);
+  --shadow-16: 0 16px 32px rgba(0, 0, 0, 0.50), 0 0 2px rgba(0, 0, 0, 0.34);
+  --shadow-28: 0 28px 48px rgba(0, 0, 0, 0.58), 0 0 6px rgba(0, 0, 0, 0.38);
+
+  --tile-bg: linear-gradient(140deg, #2f2f2f, #242424);
+  --tile-bg-dark: linear-gradient(140deg, #2f2f2f, #242424);
+  --stage-bg: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.20));
+  --on-image: #ffffff;
+  --scroll-thumb: rgba(255, 255, 255, 0.24);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.40);
+
+  --viewer-shell: #1a1a1a;
+}
+
+/* ---------------------------------------------------------------- base */
+* { box-sizing: border-box; }
+
+/* the hidden attribute must always win over a display rule in this sheet */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  font-family: var(--font-text);
+  font-size: 14px;
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  display: grid;
+  grid-template-rows: var(--titlebar-h) 1fr;
+  /* Windows 11 window corner radius. Keep this equal to DWM's own radius so the
+     two never cross: DWM cuts the window surface, this clips the page on top of
+     it, and if this arc were the larger of the two it would bite inside DWM's
+     and let the backdrop show through as a pale sliver along the edge. */
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  cursor: default;
+}
+
+/* The acrylic shell: 4% (light) / 8% (dark) tint over the native DWM backdrop */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  /* This layer paints the whole window surface, so it has to carry the same
+     8px corner radius as `body` — `inset: 0` alone is a rectangle and squares
+     off all four corners, in every material, regardless of what the window
+     frame does. `inherit` keeps the two in step if the radius ever changes. */
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(var(--veil-rgb), calc(var(--tint) / 100));
+  z-index: 0;
+}
+
+/* Acrylic: a second, milky layer so the wallpaper reads through as frosted
+   colour instead of raw wallpaper. Light is heavily milked, dark stays deep. */
+html[data-material="acrylic"] body::before {
+  background: rgba(var(--acrylic-veil), var(--acrylic-alpha));
+}
+
+/* Mica is a wallpaper *tint*, not a blur: keep it flat and opaque.
+   This used to ramp 55% -> 62% down the full window height, which is a seven
+   step gradient over ~700px — wide, faint, horizontal bands that read as a
+   gradient smear rather than a material. Mica is meant to be a flat tint, so it
+   is one value now. */
+html[data-material="mica"] body::before {
+  background: rgba(var(--mica-veil, var(--veil-rgb)), calc(var(--tint) / 100 + 0.55));
+}
+/* The "slightly whiter" Mica light pass: a whiter veil at a little more alpha,
+   which lifts daylight Mica off mid-grey. Dark keeps its own value above. */
+html[data-theme="light"][data-material="mica"] body::before {
+  background: rgba(var(--mica-veil-light-rgb), calc(var(--tint) / 100 + 0.66));
+}
+
+/* No painted window rim, in any material.
+   There used to be a 1px `--stroke-2` hairline here, copied from how Windows 11
+   rims a translucent pane. It never earned its place: in Mica and Lite the body
+   is near-opaque so it read as a grey stripe ruled around the window, and in
+   acrylic it only survived at all because the wallpaper behind is dark. Measured
+   at 125% scaling it is one physical pixel of rgb(60,60,60) against a
+   rgb(32,32,32) bar — thin, but the eye finds an unbroken straight line at any
+   weight. The window's rounded corners alone give the edge its definition, with
+   `thickFrame: true` providing the real DWM frame outside the client area. */
+
+html[data-material="solid"] body::before,
+html[data-backdrop="false"] body::before {
+  background: var(--surface-solid);
+}
+
+/* Lite is the low-power profile and keeps square corners, and its DWM corner
+   preference is DONOTROUND. Rounding it in CSS alone would paint an arc on a
+   square window, which is the pale wedge bug rather than a corner, so the two
+   have to agree: no radius here, none there. */
+html[data-material="solid"] body { border-radius: 0; }
+
+html[data-maximized="true"] body { border-radius: 0; }
+
+/* Fullscreen hides the window chrome, but the viewer's commands live in that
+   same strip now, so a slim bar stays (it slides away when the pointer leaves
+   the top edge, like a photo viewer should). */
+html[data-fullscreen="true"] #titlebar {
+  background: transparent;
+  height: var(--titlebar-h);
+  padding-right: 0;
+  opacity: 0;
+  transition: opacity 180ms var(--ease);
+}
+html[data-fullscreen="true"] #titlebar:hover,
+html[data-fullscreen="true"] #titlebar:focus-within { opacity: 1; }
+html[data-fullscreen="true"] .titlebar .library-only,
+html[data-fullscreen="true"] .titlebar .wincontrols { display: none !important; }
+html[data-fullscreen="true"] .titlebar-left,
+html[data-fullscreen="true"] .titlebar-right { opacity: 0; }
+html[data-fullscreen="true"] #titlebar:hover .titlebar-left,
+html[data-fullscreen="true"] #titlebar:hover .titlebar-right,
+html[data-fullscreen="true"] #titlebar:focus-within .titlebar-left,
+html[data-fullscreen="true"] #titlebar:focus-within .titlebar-right { opacity: 1; }
+html[data-fullscreen="true"] .cmdbar { background: rgba(20, 20, 20, 0.62); border-radius: 8px; padding: 2px 6px; }
+
+/* The library keeps its bar hidden in fullscreen; only the viewer needs it. */
+html[data-fullscreen="true"]:not([data-viewer="true"]) #titlebar { display: none; }
+html[data-fullscreen="true"]:not([data-viewer="true"]) { --titlebar-h: 0px; }
+
+svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
+button { font-family: inherit; font-size: inherit; color: inherit; }
+
+/* ---------------------------------------------------------------- scrollbars */
+.scroll-y { overflow-y: auto; overflow-x: hidden; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ---------------------------------------------------------------- title bar */
+.titlebar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 0 12px;
+  -webkit-app-region: drag;
+  /* A faint wash that fades to nothing at the bottom edge. No hard line at all:
+     the round-8 hairline is gone for good, because with the sticky Home header
+     sitting under it the two edges read as a grey stripe across the top.
+     Fading to transparent means the tint under it shows through at the seam. */
+  /* Flat, not a gradient. This bar is only 46px tall, so a wash across it spans
+     roughly four 8-bit steps in Lite and Mica — every step is a visible
+     horizontal band. Measured on the user's own captures: rows alternating
+     24/23 in Lite and 31/30.5 in Mica, straight across the caption. A flat
+     value cannot band. */
+  background: rgba(var(--veil-rgb), 0.075);
+}
+
+/* The caption bar draws no separating edge in any material.
+   There used to be a 1px hairline here, then a tapered one kept only for
+   acrylic. Both were wrong for the same reason: the Home header is sticky and
+   its top edge lands exactly on the bar's bottom edge, so any line on the bar
+   doubles with that edge and reads as a grey stripe across the top of the
+   window. The bar is told apart from the page by its tone alone, which is how
+   Windows 11 captions actually behave. */
+
+/* In acrylic the caption bar is a solid block — the glass happens below it. */
+html[data-material="acrylic"] .titlebar {
+  background: var(--acrylic-titlebar-light);
+}
+html[data-material="acrylic"][data-theme="dark"] .titlebar {
+  background: var(--acrylic-titlebar-dark);
+}
+
+/* The acrylic caption bar is solid in BOTH modes — in the viewer it simply takes
+   the viewer's own surface, so the strip and the stage read as one window. */
+html[data-viewer="true"][data-material="acrylic"] .titlebar,
+html[data-viewer="true"][data-material="acrylic"][data-theme="dark"] .titlebar {
+  background: var(--viewer-shell);
+}
+
+/* The few commands that only mean something inside the viewer. */
+.viewer-only { display: none !important; }
+html[data-viewer="true"] .titlebar .viewer-only { display: inline-flex !important; }
+html[data-viewer="true"] .titlebar .library-only { display: none !important; }
+
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding-right: 8px;
+}
+
+.app-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #ffffff));
+  color: #fff;
+  box-shadow: var(--shadow-2);
+  -webkit-app-region: no-drag;
+}
+.app-badge svg { width: 18px; height: 18px; }
+
+/* Left of the badge: the app name at Home, the photo's file name in the viewer. */
+.app-title {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--text-1);
+  white-space: nowrap;
+  /* the left block is fixed width so the centred command strip cannot shift
+     when a long file name replaces the app name */
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-title.is-filename {
+  font-family: var(--font-text);
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--text-2);
+  max-width: 260px;
+}
+
+/* Tools belong to an open photo: at Home the strip is collapsed so the app name
+   is the only thing in the bar. */
+.titlebar-center {
+  flex: 1 1 auto;
+  justify-content: center;
+  overflow: hidden;
+  display: none;
+}
+html[data-viewer="true"] .titlebar-center { display: flex; }
+
+
+.cmdbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  -webkit-app-region: no-drag;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.cmd, .icon-cmd {
+  -webkit-app-region: no-drag;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius);
+  color: var(--text-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform 90ms var(--ease);
+  position: relative;
+}
+.cmd svg, .icon-cmd svg { width: 16px; height: 16px; }
+.icon-cmd { padding: 0; width: 32px; flex: none; }
+.cmd:hover, .icon-cmd:hover { background: var(--hover-1); }
+.cmd:active, .icon-cmd:active { background: var(--pressed-1); transform: scale(0.97); }
+.cmd:focus-visible, .icon-cmd:focus-visible, .btn:focus-visible, .segmented button:focus-visible {
+  outline: 2px solid var(--text-1);
+  outline-offset: 1px;
+  border-radius: var(--radius);
+}
+.cmd[disabled], .icon-cmd[disabled] { opacity: .38; pointer-events: none; }
+.icon-cmd.small { width: 28px; height: 28px; }
+.icon-cmd.small svg { width: 15px; height: 15px; }
+
+.cmd-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--stroke-2);
+  margin: 0 4px;
+  flex: none;
+}
+
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding-right: 0;
+  /* keeps the caption buttons pinned right even when the command strip is
+     hidden at Home and there is no centre column to absorb the free space */
+  margin-left: auto;
+}
+.titlebar-right .icon-cmd.accent { color: var(--accent); }
+/* File-info and filmstrip are switches, not one-shot commands, so they get a
+   persistent on-state instead of relying on hover only. */
+.titlebar-right .icon-cmd.is-on { background: var(--selected-1); color: var(--accent); }
+
+.wincontrols {
+  display: flex;
+  align-items: stretch;
+  margin-left: 6px;
+  height: var(--titlebar-h);
+  align-self: flex-start;
+}
+.caption-btn {
+  -webkit-app-region: no-drag;
+  width: 46px;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 120ms var(--ease);
+}
+.caption-btn svg { width: 12px; height: 12px; }
+.caption-btn:hover { background: var(--hover-2); }
+.caption-btn:active { background: var(--pressed-1); }
+.caption-btn.close:hover { background: #c42b1c; color: #fff; }
+.caption-btn.close:active { background: #b32a1c; color: #fff; }
+
+/* ---------------------------------------------------------------- buttons */
+.btn {
+  appearance: none;
+  border: 1px solid var(--stroke-2);
+  background: var(--surface-layer-alt);
+  color: var(--text-1);
+  border-radius: var(--radius);
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform 90ms var(--ease);
+  box-shadow: var(--shadow-2);
+}
+.btn svg { width: 16px; height: 16px; }
+/* The mockup measures 105px for "Change folder"; the default 14px padding
+   makes it 122. */
+#btn-change-folder { padding: 0 8px; }
+/* The head control is icon-only: the label lives on as the accessible name and
+   the tooltip rather than as visible text. 44px matches the measured mockup. */
+#btn-open-photo { padding: 0; width: 44px; flex: 0 0 44px; }
+#btn-open-photo svg { width: 17px; height: 17px; }
+.btn:hover { background: var(--hover-2); }
+.btn:active { background: var(--pressed-1); transform: scale(0.985); }
+.btn.subtle { background: transparent; border-color: var(--stroke-2); box-shadow: none; }
+.btn.subtle:hover { background: var(--hover-1); }
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-text);
+  box-shadow: var(--shadow-2);
+}
+.btn.primary:hover { background: linear-gradient(rgba(0,0,0,.06), rgba(0,0,0,.06)), var(--accent); }
+.btn.primary:active { background: linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.12)), var(--accent); }
+.btn.small { height: 28px; padding: 0 10px; font-size: 12px; }
+.btn.small svg { width: 14px; height: 14px; }
+
+/* ---------------------------------------------------------------- library */
+.library {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* `min-width: 0` is load-bearing, not tidying.
+
+     `#library` is a grid item of `body`, and grid items default to
+     `min-width: auto`, which resolves to their MIN-CONTENT width. Carousel mode
+     lays its reel out with `flex-wrap: nowrap`, whose min-content width is every
+     tile in the folder side by side — 10,262px for a 300-photo library. So the
+     body grid column inflated to the width of the widest reel, the header and
+     toolbar stretched with it, and every reel was clipped at the window edge.
+
+     Setting min-width to 0 drops the automatic minimum, so the column is the
+     window width and the reel scrolls inside it, which is what carousel mode
+     was built to do. */
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+/* Everything below the Home banner scrolls, so the scrollbar track starts at
+   the banner's bottom edge instead of running the full window height. */
+.library-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Same automatic-minimum problem one level down: as a flex item the body
+     would otherwise refuse to shrink below its content, so the horizontally
+     scrolling reels would push it wide instead of scrolling. */
+  min-width: 0;
+  width: 100%;
+  padding-bottom: 26px;
+}
+
+/* This used to carry a scroll shadow: a gradient fading out over 24px. Against
+   a 32-luminance surface that fade spans about three 8-bit steps, which reads
+   as a trio of horizontal bars across the top of the grid. Invisible in
+   acrylic, obvious in Mica and Lite — the flat materials. Removed rather than
+   blurred, because a dimmer band would still be a band. */
+
+/* The Home banner is a fixed strip above the scrolling library, so it must
+   settle its own vertical rhythm: content is centred inside it, not pushed
+   toward the lower edge. Equal top and bottom padding does that. */
+.library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 28px;
+  position: relative;
+  flex: none;
+  z-index: 6;
+}
+
+/* Acrylic banner: 2% translucent, so the window's acrylic backdrop reads
+   through it. The blur is what keeps the title legible over a busy wallpaper. */
+/* Every one of these is a flat fill, deliberately. A 2% veil fading to nothing
+   over ~111px of banner is two or three 8-bit steps — invisible as a gradient,
+   visible as horizontal banding. Flat values cannot band at any bit depth. */
+html[data-material="acrylic"] .library-head {
+  background: rgba(var(--home-bar-veil), var(--home-bar-alpha));
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+/* Mica is a wallpaper tint, not a blur — so the banner is a flat Mica band with
+   no backdrop blur, matching how the rest of a Mica window is painted. */
+html[data-material="mica"] .library-head {
+  /* Same veil and same alpha as the Mica body above, or the banner and the grid
+     would sit a shade apart with a hard seam between them. */
+  background: rgba(var(--mica-veil, var(--veil-rgb)), calc(var(--tint) / 100 + 0.55));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-theme="light"][data-material="mica"] .library-head {
+  background: rgba(var(--mica-veil-light-rgb), calc(var(--tint) / 100 + 0.66));
+}
+
+/* Lite mode exists to avoid exactly this cost, so it keeps the band but drops
+   the blur, falling back to a solid so the text stays readable. */
+html[data-material="solid"] .library-head {
+  background: var(--surface-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.library-head-text h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.15;
+}
+.lib-sub { font-size: 12px; color: var(--text-2); margin-top: 0; line-height: 1.38; }
+
+.library-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-wrap .search-icon {
+  position: absolute;
+  left: 9px;
+  width: 15px; height: 15px;
+  color: var(--text-3);
+  pointer-events: none;
+}
+.search {
+  width: 245px;
+  height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--stroke-2);
+  border-bottom-color: var(--stroke-3);
+  background: var(--surface-input);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  padding: 0 30px 0 31px;
+  outline: none;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), width var(--dur) var(--ease);
+  box-shadow: var(--shadow-2);
+}
+.search::placeholder { color: var(--text-3); }
+.search:focus {
+  background: var(--surface-input-focus);
+  border-color: var(--accent);
+  width: 290px;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0;
+}
+.search-clear {
+  position: absolute;
+  right: 5px;
+  width: 22px; height: 22px;
+  border: 0; border-radius: 4px;
+  background: transparent;
+  color: var(--text-2);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.search-clear:hover { background: var(--hover-1); }
+.search-clear svg { width: 12px; height: 12px; }
+
+.library-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 28px 12px;
+  flex-wrap: wrap;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 18px;
+  background: var(--surface-layer);
+  border: 1px solid var(--stroke-1);
+  backdrop-filter: blur(10px);
+}
+.segmented button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.segmented button:hover { background: var(--hover-1); color: var(--text-1); }
+/* The selected view pill is accented, so the app has a second place (besides
+   buttons and the material picker) where the user's accent colour shows. It is
+   built from the accent at low alpha rather than a flat tint so it stays legible
+   over both Mica and the flat Lite surface. */
+.segmented button.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 34%, transparent);
+  font-weight: 600;
+}
+.segmented button.active:hover {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--accent);
+}
+html[data-theme="light"] .segmented button.active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.toolbar-right { display: flex; align-items: center; gap: 10px; }
+/* .hint is no longer rendered in the library head, but the class is kept for
+   the viewer's transient messages. */
+
+/* ---------------------------------------------------------------- groups */
+.groups { padding: 0 28px; }
+.group { margin-bottom: 22px; }
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 6px 2px 10px;
+  position: relative;
+}
+.group-head svg { width: 15px; height: 15px; color: var(--text-3); }
+.group-head .g-name { font-weight: 600; color: var(--text-1); font-size: 12.5px; }
+.group-head .g-path { color: var(--text-3); }
+.group-head .g-count { color: var(--text-3); }
+.group-head .g-actions { margin-left: auto; display: flex; gap: 4px; opacity: 0; transition: opacity var(--dur) var(--ease); }
+.group:hover .group-head .g-actions { opacity: 1; }
+
+.tiles {
+  display: grid;
+  gap: 14px;
+  /* Every layout is a grid of tracks that must fit the window. Carousel
+     overrides `display` to flex below, but the min-width guard belongs to all
+     of them: none of these views is allowed to be wider than its scroller. */
+  min-width: 0;
+}
+.view-tiles .tiles { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 16px 14px; }
+.view-cards .tiles { grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 18px 16px; }
+.view-thumbnails .tiles { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px 10px; }
+.view-collage .tiles {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-auto-rows: 118px;
+  gap: 10px;
+  grid-auto-flow: dense;
+}
+.view-collage .tile { min-height: 0; }
+.view-grid .tiles { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+
+/* ---- Carousel view: one horizontal reel per folder, snapped ---------------
+   The grid becomes a single row that scrolls sideways instead of wrapping.
+   Pointer drag + wheel are wired in app.js; snap keeps a photo aligned. */
+.view-carousel .tiles {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 4px 14px;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+}
+.view-carousel .tiles.dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
+.view-carousel .tiles.dragging .tile { pointer-events: none; }
+
+/* Fluent scrollbar for the reel.
+   NOTE: no `scrollbar-width: thin` here — setting it makes Chromium use the
+   native OS scrollbar and discard every ::-webkit-scrollbar rule below, which
+   is what produced the flat grey bar. The thumb stays invisible at rest and
+   fades in on hover or while the reel is being scrolled, the way Fluent does. */
+.view-carousel .tiles::-webkit-scrollbar {
+  height: 12px;
+}
+.view-carousel .tiles::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0 4px;
+}
+.view-carousel .tiles::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background-clip: content-box;
+  /* Chromium does not animate scrollbar pseudo-elements, so this appears on
+     hover/scroll rather than fading in. */
+}
+.view-carousel .tiles:hover::-webkit-scrollbar-thumb,
+.view-carousel .tiles.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  background-clip: content-box;
+}
+.view-carousel .tiles::-webkit-scrollbar-thumb:hover,
+.view-carousel .tiles.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: content-box;
+}
+.view-carousel .tile {
+  flex: 0 0 auto;
+  width: 262px;
+  scroll-snap-align: start;
+}
+.view-carousel .tile .frame { aspect-ratio: 16 / 10; }
+/* the reel is the point of the view, so give it a little more presence */
+.view-carousel .tile:hover .frame { box-shadow: var(--shadow-16); }
+.view-carousel .tile .name { font-size: 12px; }
+
+
+/* ---- photo tile */
+.tile {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-lg);
+  outline: none;
+  transition: transform 130ms var(--ease);
+  animation: tile-in 260ms var(--ease-out) both;
+}
+@keyframes tile-in {
+  from { opacity: 0; transform: translateY(6px) scale(.995); }
+  to { opacity: 1; transform: none; }
+}
+html[data-transitions="false"] .tile { animation: none; }
+
+.tile .frame {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--tile-bg);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--stroke-1);
+  transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.tile .frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 320ms var(--ease-out), opacity 220ms var(--ease);
+}
+.tile .frame .ph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  opacity: .5;
+  z-index: 0;
+}
+.tile .frame img { position: relative; z-index: 1; }
+.tile .frame .ph svg { width: 22px; height: 22px; }
+
+.view-tiles .tile .frame { aspect-ratio: 16 / 10; }
+.view-cards .tile .frame { aspect-ratio: 16 / 10; }
+.view-thumbnails .tile .frame { aspect-ratio: 1 / 1; border-radius: var(--radius); }
+.view-grid .tile .frame { aspect-ratio: 1 / 1; border-radius: var(--radius); }
+.view-collage .tile .frame { height: 100%; }
+
+.view-collage .tile:nth-child(7n + 1) { grid-column: span 2; grid-row: span 2; }
+.view-collage .tile:nth-child(11n + 5) { grid-row: span 2; }
+.view-collage .tile:nth-child(13n + 9) { grid-column: span 2; }
+.view-collage .tile .frame { height: 100%; }
+.view-collage .tile .frame img { height: 100%; }
+
+.tile:hover .frame { box-shadow: var(--shadow-8); border-color: var(--stroke-2); }
+.tile:hover .frame img { transform: scale(1.035); }
+.tile:active .frame img { transform: scale(1.01); }
+.tile:focus-visible .frame { outline: 2px solid var(--text-1); outline-offset: 2px; }
+.tile.selected .frame { outline: 2px solid var(--accent); outline-offset: -2px; border-color: transparent; }
+
+.tile .name {
+  font-size: 12px;
+  color: var(--text-1);
+  margin: 7px 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+.view-thumbnails .tile .name, .view-grid .tile .name { font-size: 11px; margin-top: 5px; }
+
+.tile .badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.62);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.tile:hover .badge { opacity: 1; transform: none; }
+
+/* cards view: name over photo */
+.view-cards .tile .name {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  margin: 0;
+  padding: 22px 10px 9px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12.5px;
+  background: linear-gradient(transparent, rgba(0,0,0,.62));
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.view-cards .tile .wrap { position: relative; border-radius: var(--radius-lg); overflow: hidden; }
+.view-grid .tile .frame { border-radius: var(--radius-lg); }
+
+/* details view */
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.details-table th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--stroke-2);
+  position: sticky;
+  top: 0;
+  background: var(--surface-layer-alt);
+  backdrop-filter: blur(14px);
+  z-index: 2;
+}
+.details-table td { padding: 6px 10px; border-bottom: 1px solid var(--stroke-1); color: var(--text-2); }
+.details-table tr { cursor: pointer; }
+.details-table tbody tr:hover { background: var(--hover-1); }
+.details-table tr.selected { background: var(--selected-1); }
+.details-table td.d-name { color: var(--text-1); display: flex; align-items: center; gap: 9px; }
+.details-table td.d-name img {
+  width: 30px; height: 30px; border-radius: 4px; object-fit: cover; background: var(--tile-bg);
+  border: 1px solid var(--stroke-1);
+}
+.details-table td.d-size, .details-table td.d-date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 80px 20px;
+  text-align: center;
+}
+.empty-art {
+  width: 84px; height: 84px;
+  border-radius: 22px;
+  display: grid; place-items: center;
+  background: var(--surface-card);
+  border: 1px solid var(--stroke-1);
+  color: var(--text-3);
+  box-shadow: var(--shadow-4);
+  margin-bottom: 10px;
+}
+.empty-art svg { width: 38px; height: 38px; }
+.empty-state h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; }
+.empty-state p { color: var(--text-2); font-size: 13px; margin: 2px 0 14px; max-width: 380px; }
+.empty-actions { display: flex; gap: 8px; }
+
+/* ---------------------------------------------------------------- viewer */
+/* The viewer fills the window *below* the shared title bar (the grid row
+   reserved for it), so the caption bar stays visible and usable. */
+.viewer {
+  position: fixed;
+  top: var(--titlebar-h);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  /* [stage/filmstrip/footer] [info pane]. The pane is a real column spanning all
+     three rows, so it reaches the title bar above and the window edge below.
+     When it is hidden the column collapses to 0 and the layout is unchanged. */
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr auto auto;
+  /* Opaque on purpose: a translucent viewer let the library's breadcrumb and
+     commands bleed through the caption bar, which read as two stacked bars. */
+  background: var(--viewer-shell);
+  animation: viewer-in 200ms var(--ease-out);
+}
+@keyframes viewer-in { from { opacity: 0; transform: scale(.995); } to { opacity: 1; transform: none; } }
+html[data-fullscreen="true"] .viewer { top: 0; background: #101010; }
+html[data-fullscreen="true"] .titlebar { background: #101010; }
+
+/* Caption bar while a photo is open: same strip, viewer surface, viewer modes. */
+html[data-viewer="true"] .titlebar { background: var(--viewer-shell); }
+html[data-fullscreen="true"][data-viewer="true"] .titlebar { background: #101010; }
+
+.viewer-stage {
+  position: relative;
+  overflow: hidden;
+  background: var(--stage-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.viewer-stage.dragging { cursor: grabbing; }
+.stage-canvas {
+  position: relative;
+  transform-origin: 0 0;
+  will-change: transform;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#stage-img {
+  display: block;
+  /* the window reserves 46px for the title bar; keep the photo clear of both bars */
+  max-width: calc(100vw - 96px);
+  max-height: calc(100vh - var(--titlebar-h) - 164px);
+  object-fit: contain;
+  border-radius: 2px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.stage-canvas.zoomed #stage-img { max-width: none; max-height: none; }
+
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px; height: 56px;
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-lg);
+  background: var(--surface-flyout);
+  color: var(--text-1);
+  display: grid; place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-4);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease), transform 120ms var(--ease);
+  z-index: 5;
+}
+.nav-arrow svg { width: 18px; height: 18px; }
+.viewer-stage:hover .nav-arrow { opacity: 1; }
+.nav-arrow:hover { background: var(--surface-card-hover); }
+.nav-arrow.left { left: 14px; }
+.nav-arrow.right { right: 14px; }
+.nav-arrow:active { transform: translateY(-50%) scale(.96); }
+.nav-arrow[disabled] { opacity: 0 !important; pointer-events: none; }
+
+.zoom-pill {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 13px;
+  background: rgba(28,28,28,.62);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  letter-spacing: .01em;
+}
+.edit-pill {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 13px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-2);
+}
+
+.filmstrip {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: rgba(var(--veil-rgb), calc(var(--tint) / 100 + 0.16));
+  border-top: 1px solid var(--stroke-1);
+  min-height: 84px;
+  align-items: center;
+}
+.filmstrip[hidden] { display: none; }
+.filmstrip .fs-item {
+  flex: none;
+  width: 88px;
+  height: 62px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: var(--tile-bg);
+  cursor: pointer;
+  padding: 0;
+  opacity: .72;
+  transition: opacity var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.filmstrip .fs-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.filmstrip .fs-item:hover { opacity: 1; transform: translateY(-1px); }
+.filmstrip .fs-item.active { border-color: var(--accent); opacity: 1; }
+
+.viewer-footer {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  border-top: 1px solid var(--stroke-1);
+  background: rgba(var(--veil-rgb), calc(var(--tint) / 100 + 0.14));
+}
+html[data-material="solid"] .viewer-footer { background: var(--surface-solid); }
+.footer-left { display: flex; gap: 14px; align-items: center; overflow: hidden; white-space: nowrap; }
+.footer-left b { font-weight: 600; color: var(--text-1); }
+.footer-right { display: flex; align-items: center; gap: 8px; }
+.pos-indicator { font-variant-numeric: tabular-nums; }
+
+/* info pane */
+.info-pane {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  width: 320px;
+  min-height: 0;
+  background: var(--surface-flyout);
+  /* No blur: it is flush against the stage and the title bar now, and a blurred
+     sample under a seam reads as a dirty edge rather than a material. */
+  border-left: 1px solid var(--stroke-2);
+  display: flex;
+  flex-direction: column;
+  animation: slide-in-right 180ms var(--ease-out);
+  z-index: 8;
+}
+@keyframes slide-in-right { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* The stage, film strip and footer sat in column 1 once the pane took column 2. */
+.viewer-stage, .filmstrip, .viewer-footer { grid-column: 1; }
+.info-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 12px 8px 16px;
+}
+.info-head h3 { margin: 0; font-size: 14px; font-weight: 600; font-family: var(--font-display); }
+.info-body { padding: 4px 16px 18px; overflow-y: auto; font-size: 12.5px; }
+.info-section { padding: 10px 0; border-bottom: 1px solid var(--stroke-1); }
+.info-section:last-child { border-bottom: 0; }
+.info-section h5 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-3);
+  font-weight: 600;
+}
+.info-row { display: flex; justify-content: space-between; gap: 14px; padding: 3px 0; }
+.info-row .k { color: var(--text-2); }
+.info-row .v { color: var(--text-1); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- crop overlay */
+.stage-canvas { position: relative; }
+.crop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+.crop-rect {
+  position: absolute;
+  outline: 2500px solid rgba(0,0,0,.45);
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+  cursor: move;
+}
+
+.crop-rect .handle {
+  position: absolute;
+  width: 12px; height: 12px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.35);
+  border-radius: 2px;
+}
+.crop-rect .handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
+.crop-rect .handle.n { left: calc(50% - 6px); top: -6px; cursor: ns-resize; }
+.crop-rect .handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
+.crop-rect .handle.w { left: -6px; top: calc(50% - 6px); cursor: ew-resize; }
+.crop-rect .handle.e { right: -6px; top: calc(50% - 6px); cursor: ew-resize; }
+.crop-rect .handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.crop-rect .handle.s { left: calc(50% - 6px); bottom: -6px; cursor: ns-resize; }
+.crop-rect .handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+
+/* ----------------------------------------------------------------------- panels */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.panel {
+  position: fixed;
+  z-index: 50;
+  animation: panel-in 220ms var(--ease-out) both;
+}
+@keyframes panel-in { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: none; } }
+/* The settings overlay is gone: Settings is its own native window now
+   (settings.html + settings.css). What stays here are the shared pieces that
+   window renders — the nav list, cards, radios, swatches and the About blocks —
+   because both documents load this stylesheet. */
+
+.scroll-y { -webkit-app-region: no-drag; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13px;
+  cursor: pointer;
+  position: relative;
+  text-align: left;
+}
+.nav-item svg { width: 16px; height: 16px; color: var(--text-2); }
+.nav-item:hover { background: var(--hover-1); }
+.nav-item.active { background: var(--selected-1); font-weight: 600; }
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 9px; bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+.nav-item.active svg { color: var(--accent); }
+
+.settings-tab h2 { font-family: var(--font-display); font-size: 21px; font-weight: 600; margin: 0; }
+.settings-sub { color: var(--text-2); font-size: 12.5px; margin: 4px 0 16px; }
+
+.card {
+  border: 1px solid var(--stroke-1);
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-2);
+}
+.card h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+/* Help copy sits under a control or a row of radios, so it needs a little air
+   above it and the same below so the block stays balanced. */
+.card .field-help,
+.field-help {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin: 9px 0 3px;
+  line-height: 1.5;
+}
+/* the accent card carries a picker under its help text, so the copy needs a
+   little more separation from the swatches than a plain field does */
+.accent-help { margin-bottom: 2px; }
+.field-help.error { color: #d13438; }
+
+.folder-row { display: flex; gap: 8px; align-items: center; }
+.text-field {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--stroke-2);
+  border-bottom-color: var(--stroke-3);
+  background: var(--surface-input);
+  color: var(--text-1);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+  box-shadow: var(--shadow-2);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.text-field:focus { border-color: var(--accent); border-bottom-color: var(--accent); background: var(--surface-input-focus); }
+.text-field.small { height: 30px; }
+
+.quick-folders { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.chip {
+  border: 1px solid var(--stroke-2);
+  background: var(--surface-layer-alt);
+  border-radius: 20px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip:hover { background: var(--hover-2); color: var(--text-1); }
+.chip svg { width: 12px; height: 12px; }
+
+.radio-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px 0 9px;
+  border-radius: 15px;
+  border: 1px solid var(--stroke-2);
+  background: var(--surface-layer-alt);
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.radio:hover { background: var(--hover-1); }
+.radio input { position: absolute; opacity: 0; pointer-events: none; }
+.radio .dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1.4px solid var(--text-2);
+  display: inline-block;
+  position: relative;
+  flex: none;
+  transition: border-color var(--dur) var(--ease);
+}
+.radio input:checked + .dot { border-color: var(--accent); border-width: 1.4px; }
+.radio input:checked + .dot::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.radio:has(input:checked) { border-color: var(--stroke-3); background: var(--selected-1); font-weight: 600; }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.toggle { position: relative; display: inline-flex; flex: none; }
+.toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle .track {
+  width: 40px; height: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke-3);
+  background: transparent;
+  display: inline-block;
+  position: relative;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.toggle .thumb {
+  position: absolute;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--text-2);
+  left: 3px; top: 3px;
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease), width var(--dur) var(--ease), height var(--dur) var(--ease), left var(--dur) var(--ease), top var(--dur) var(--ease);
+}
+.toggle input:checked + .track { background: var(--accent); border-color: var(--accent); }
+.toggle input:checked + .track .thumb { background: #fff; transform: translateX(20px); }
+.toggle input:focus-visible + .track { outline: 2px solid var(--text-1); outline-offset: 2px; }
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 108px 1fr 46px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  color: var(--text-1);
+}
+.slider-row output { font-size: 11.5px; color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+  width: 100%;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--stroke-3) var(--fill, 50%));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 4px solid var(--surface-solid);
+  box-shadow: 0 0 0 1px var(--stroke-3), var(--shadow-2);
+  margin-top: -7px;
+  transition: transform 100ms var(--ease);
+}
+input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.08); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(.94); }
+
+/* Accent picker: the System row sits above the palette, with breathing room
+   between the label, the value and the swatches. */
+.accent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 12px;
+}
+
+/* The System swatch is the same size as a palette swatch and sits in the same
+   row, so the accent picker reads as one control rather than two. */
+.swatch.system {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--stroke-3);
+  background: var(--surface-input);
+  cursor: pointer;
+  position: relative;
+  transition: transform 100ms var(--ease), border-color 120ms var(--ease);
+}
+.swatch.system:hover { transform: scale(1.08); }
+.swatch.system .swatch-chip {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,.14);
+  flex: none;
+  /* If the platform has no readable system accent (non-Windows, or the registry
+     value is missing) the chip used to render as an empty white box, which read
+     as a broken swatch rather than "your system colour". Fall back to the app's
+     own accent token so it always looks like a colour. */
+  background: var(--accent);
+}
+/* selection ring matches the palette swatches exactly */
+.swatch.system.active::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9px;
+  border: 2px solid var(--text-1);
+  pointer-events: none;
+}
+
+.swatch-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.group-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-3);
+  font-weight: 600;
+  min-width: 46px;
+}
+.swatch-group-row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; row-gap: 9px; }
+
+.swatch {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,.10);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 100ms var(--ease);
+}
+.swatch:hover { transform: scale(1.08); }
+.swatch.active::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9px;
+  border: 2px solid var(--text-1);
+}
+
+.hero-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--stroke-1);
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-4);
+}
+.hero-badge {
+  width: 54px; height: 54px;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #ffffff));
+  color: #fff;
+  box-shadow: var(--shadow-4);
+  /* clickable: opens the author's GitHub */
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 120ms var(--ease), box-shadow 120ms var(--ease);
+}
+.hero-badge:hover { transform: translateY(-1px) scale(1.03); box-shadow: var(--shadow-8); }
+.hero-badge:active { transform: scale(.98); }
+.hero-badge:focus-visible { outline: 2px solid var(--text-1); outline-offset: 3px; }
+.hero-badge svg { width: 30px; height: 30px; }
+
+/* credits */
+/* The logo sits on the baseline of "Created by" without changing the card's
+   height: the row is a flex line, and the other two credit lines keep their
+   existing rhythm below it. */
+.credits .credit-head { display: flex; align-items: center; gap: 10px; }
+.credit-logo {
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  flex: 0 0 40px;
+  border-radius: 10px;
+  text-decoration: none;
+  -webkit-app-region: no-drag;
+  /* The mark is white artwork on a transparent field. On a light card that is
+     white on near-white and it disappeared behind the name. A dark plate under
+     it makes the knight legible in both themes and reads as a badge. */
+  background: #1b1b1b;
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+.credit-logo img { width: 40px; height: 40px; display: block; object-fit: contain; }
+.credit-logo:hover { background: var(--stroke-1); transform: translateY(-1px); }
+.credit-logo:active { transform: translateY(0); }
+.credit-logo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.credits .credit-line { margin: 0; font-size: 12.5px; color: var(--text-2); line-height: 1.7; }
+.credits .credit-line b { color: var(--text-1); font-weight: 600; }
+.hero-text h2 { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.hero-text p { margin: 2px 0 0; font-size: 12px; color: var(--text-2); }
+
+/* Scoped so it cannot outrank .field-help: a class + element beats a bare class,
+   which silently flattened every help line in a card to body copy. */
+.card > p:not(.field-help) { margin: 0; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+.tick-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.tick-list li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.tick-list li::before {
+  content: "";
+  position: absolute;
+  left: 4px; top: 6px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.format-list {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.85;
+  letter-spacing: .02em;
+  word-spacing: 2px;
+}
+
+/* ---------------------------------------------------------------- dialogs */
+.dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.24);
+  backdrop-filter: blur(3px);
+  animation: fade-in 140ms var(--ease) both;
+}
+.dialog {
+  width: min(420px, calc(100vw - 48px));
+  border-radius: var(--radius-xl);
+  background: var(--surface-flyout);
+  border: 1px solid var(--stroke-2);
+  box-shadow: var(--shadow-28);
+  backdrop-filter: blur(48px) saturate(150%);
+  padding: 22px 24px 18px;
+  animation: dialog-in 180ms var(--ease-out) both;
+}
+@keyframes dialog-in { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: none; } }
+.dialog h3 { margin: 0 0 8px; font-family: var(--font-display); font-size: 19px; font-weight: 600; }
+.dialog-body { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.dialog-field { margin-top: 14px; }
+.dialog-field .text-field { width: 100%; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.resize-grid { display: grid; gap: 10px; margin-top: 14px; }
+.field-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.field-row > span { width: 74px; color: var(--text-2); flex: none; }
+.field-row .text-field { flex: none; width: 130px; }
+.field-row select, select {
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--stroke-2);
+  background: var(--surface-input);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0 8px;
+  outline: none;
+}
+select:focus { border-color: var(--accent); }
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); }
+.check-row input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+/* ---------------------------------------------------------------- toasts */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  min-width: 220px;
+  max-width: 460px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-flyout);
+  border: 1px solid var(--stroke-2);
+  box-shadow: var(--shadow-16);
+  backdrop-filter: blur(36px) saturate(150%);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toast-in 220ms var(--ease-out) both;
+}
+.toast.out { animation: toast-out 180ms var(--ease) both; }
+.toast svg { width: 16px; height: 16px; flex: none; }
+.toast.ok svg { color: #0f7b0f; }
+html[data-theme="dark"] .toast.ok svg { color: #6ccb5f; }
+.toast.err svg { color: #c42b1c; }
+html[data-theme="dark"] .toast.err svg { color: #ff99a4; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(6px); } }
+
+/* ---------------------------------------------------------------- drop overlay */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .28);
+  backdrop-filter: blur(4px);
+}
+.drop-card {
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-xl);
+  background: var(--surface-flyout);
+  padding: 34px 46px;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-16);
+  color: var(--text-1);
+  font-size: 13px;
+}
+.drop-card svg { width: 40px; height: 40px; color: var(--accent); }
+
+/* ---------------------------------------------------------------- responsive */
+@media (max-width: 1180px) {
+  .cmd span { display: none; }
+  .cmd { width: 32px; padding: 0; }
+  .app-title { max-width: 120px; }
+}
+@media (max-width: 980px) {
+  .titlebar-center .cmdbar .cmd[data-cmd="save"] { display: none; }
+  .hint { display: none; }
+}
+@media (max-width: 820px) {
+  .library-head { flex-wrap: wrap; }
+  .search { width: 150px; }
+  .search:focus { width: 190px; }
+}
+
+/* ---------------------------------------------------------------- context menu */
+.context-menu {
+  position: fixed;
+  z-index: 120;
+  min-width: 224px;
+  padding: 5px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-flyout);
+  border: 1px solid var(--stroke-2);
+  box-shadow: var(--shadow-16);
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  animation: menu-in 130ms var(--ease-out) both;
+}
+@keyframes menu-in { from { opacity: 0; transform: scale(.98) translateY(-3px); } to { opacity: 1; transform: none; } }
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item svg { width: 16px; height: 16px; color: var(--text-2); }
+.menu-item:hover { background: var(--hover-1); }
+.menu-sep { height: 1px; margin: 4px 6px; background: var(--stroke-2); }
+
+/* ---------------------------------------------------------------- extras */
+.menu-check { margin-left: auto; display: inline-flex; color: var(--accent); }
+.menu-check svg { width: 14px; height: 14px; }
+
+.more-btn {
+  display: block;
+  margin: 14px auto 0;
+  height: 30px;
+}
+
+.unsupported-card {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(420px, 70vw);
+  height: fit-content;
+  border-radius: var(--radius-xl);
+  background: var(--surface-flyout);
+  border: 1px solid var(--stroke-2);
+  box-shadow: var(--shadow-16);
+  backdrop-filter: blur(30px) saturate(150%);
+  padding: 26px 28px;
+  text-align: center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  z-index: 3;
+}
+.unsupported-card > svg { width: 34px; height: 34px; color: var(--text-3); }
+.unsupported-card h3 { margin: 4px 0 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.unsupported-card p { margin: 0 0 8px; font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+
+/* ==========================================================================
+   Lite mode — for older / low-power PCs.
+
+   Same layout and the same Fluent look, minus everything that costs frames:
+   no backdrop blur, no layered shadows, no entrance animations or hover
+   transforms, and flat surfaces instead of translucent glass. Toggled with
+   the `solid` material value, which the settings UI labels "Lite mode".
+   ========================================================================== */
+html[data-material="solid"] {
+  --dur: 0ms;
+  /* one flat surface everywhere: bar, stage and body must match exactly */
+  --viewer-shell: var(--surface-solid);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.10);
+  --shadow-4: 0 2px 4px rgba(0, 0, 0, 0.12);
+  --shadow-8: 0 3px 6px rgba(0, 0, 0, 0.14);
+  --shadow-16: 0 6px 12px rgba(0, 0, 0, 0.16);
+  --shadow-28: 0 10px 20px rgba(0, 0, 0, 0.20);
+}
+
+/* Flat, opaque surfaces: no glass to composite, so nothing re-blends on scroll. */
+html[data-material="solid"] {
+  --surface-card: var(--surface-solid);
+  --surface-card-hover: var(--surface-solid);
+  --surface-layer: var(--surface-solid);
+  --surface-layer-alt: var(--surface-solid);
+  --surface-input: var(--surface-solid);
+  --surface-input-focus: var(--surface-solid);
+  --surface-flyout: var(--surface-solid);
+}
+
+/* Kill every backdrop pair in one place; no per-rule bookkeeping needed. */
+html[data-material="solid"] *,
+html[data-material="solid"] *::before,
+html[data-material="solid"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* No entrance, hover or press motion. */
+html[data-material="solid"] *,
+html[data-material="solid"] *::before,
+html[data-material="solid"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-material="solid"] .cmd:active,
+html[data-material="solid"] .icon-cmd:active,
+html[data-material="solid"] .btn:active,
+html[data-material="solid"] .tile:active,
+html[data-material="solid"] .tile:hover,
+html[data-material="solid"] .filmstrip .fs-item:hover,
+html[data-material="solid"] .nav-arrow:active {
+  transform: none !important;
+}
+
+/* Cheaper scrolling and image scaling. */
+html[data-material="solid"] .library,
+html[data-material="solid"] .filmstrip,
+html[data-material="solid"] .info-body,
+html[data-material="solid"] .settings-body {
+  scroll-behavior: auto !important;
+}
+html[data-material="solid"] .tile .frame img,
+html[data-material="solid"] #stage-img,
+html[data-material="solid"] .filmstrip .fs-item img {
+  image-rendering: auto;
+}
+html[data-material="solid"] .stage-canvas { will-change: auto; }
+
+html[data-material="solid"] .nav-arrow { opacity: 1; }
+html[data-material="solid"] .viewer { background: var(--surface-solid); }
+html[data-material="solid"] .stage-canvas.zoomed #stage-img { box-shadow: none; }

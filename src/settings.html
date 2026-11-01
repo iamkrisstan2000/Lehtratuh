@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-material="mica">
+<head>
+  <meta charset="utf-8" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body class="settings-body">
+  <div id="icon-defs" hidden aria-hidden="true"></div>
+
+  <section class="settings-window" id="panel-settings" aria-label="Settings">
+    <div class="settings-titlebar" id="settings-titlebar">
+      <svg class="stb-icon"><use href="#i-aperture"/></svg>
+      <span class="stb-title" id="stb-title">Settings</span>
+      <div class="stb-spacer"></div>
+      <div class="wincontrols" id="set-wincontrols">
+        <button class="caption-btn" id="set-min" title="Minimize"><svg><use href="#i-chrome_min"/></svg></button>
+        <button class="caption-btn" id="set-max" title="Maximize"><svg id="set-max-icon"><use href="#i-chrome_max"/></svg></button>
+        <button class="caption-btn close" id="set-winhide" title="Close"><svg><use href="#i-chrome_close"/></svg></button>
+      </div>
+    </div>
+    <div class="settings-shell">
+      <nav class="settings-nav">
+        <div class="settings-nav-head" aria-hidden="true"></div>
+        <button class="nav-item active" data-tab="library"><svg><use href="#i-book"/></svg>Library</button>
+        <button class="nav-item" data-tab="appearance"><svg><use href="#i-appearance"/></svg>Appearance</button>
+        <button class="nav-item" data-tab="about"><svg><use href="#i-info"/></svg>About</button>
+      </nav>
+      <div class="settings-content scroll-y">
+        <!-- Library tab -->
+        <div class="settings-tab" id="tab-library">
+          <h2>Library</h2>
+          <p class="settings-sub">Where your photos live and how they are laid out.</p>
+
+          <div class="card">
+            <h3>Default photo folder</h3>
+            <div class="folder-row">
+              <input class="text-field" id="set-folder" readonly />
+              <button class="btn subtle" id="set-change">Change…</button>
+              <button class="btn subtle" id="set-default">Use default</button>
+            </div>
+            <p class="field-help" id="set-folder-help">Windows default — your Pictures folder.</p>
+            <div class="quick-folders" id="quick-folders"></div>
+          </div>
+
+          <div class="card">
+            <h3>Library view</h3>
+            <div class="radio-row" id="set-view">
+              <label class="radio"><input type="radio" name="view" value="cards"><span class="dot"></span>Cards</label>
+              <label class="radio"><input type="radio" name="view" value="carousel"><span class="dot"></span>Carousel</label>
+              <label class="radio"><input type="radio" name="view" value="collage"><span class="dot"></span>Collage</label>
+              <label class="radio"><input type="radio" name="view" value="thumbnails"><span class="dot"></span>Thumbnails</label>
+              <label class="radio"><input type="radio" name="view" value="tiles"><span class="dot"></span>Tiles</label>
+              <label class="radio"><input type="radio" name="view" value="details"><span class="dot"></span>Details</label>
+              <label class="radio"><input type="radio" name="view" value="grid"><span class="dot"></span>Grid</label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Behaviour</h3>
+            <label class="toggle-row"><span>Group photos by folder</span>
+              <span class="toggle"><input type="checkbox" id="set-group" checked><span class="track"><span class="thumb"></span></span></span>
+            </label>
+            <label class="toggle-row"><span>Show the filmstrip in the viewer</span>
+              <span class="toggle"><input type="checkbox" id="set-filmstrip" checked><span class="track"><span class="thumb"></span></span></span>
+            </label>
+            <label class="toggle-row"><span>Show file names under photos</span>
+              <span class="toggle"><input type="checkbox" id="set-filenames" checked><span class="track"><span class="thumb"></span></span></span>
+            </label>
+            <label class="toggle-row"><span>Animate photo transitions</span>
+              <span class="toggle"><input type="checkbox" id="set-transitions" checked><span class="track"><span class="thumb"></span></span></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Appearance tab -->
+        <div class="settings-tab" id="tab-appearance" hidden>
+          <h2>Appearance</h2>
+          <p class="settings-sub">Mode, accent colour and the material behind the window.</p>
+
+          <div class="card">
+            <h3>App mode</h3>
+            <p class="field-help">Dark, light, or follow Windows automatically.</p>
+            <div class="radio-row">
+              <label class="radio"><input type="radio" name="mode" value="dark"><span class="dot"></span>Dark mode</label>
+              <label class="radio"><input type="radio" name="mode" value="light"><span class="dot"></span>Light mode</label>
+              <label class="radio"><input type="radio" name="mode" value="system"><span class="dot"></span>System sync</label>
+            </div>
+            <p class="field-help" id="mode-help">Windows is currently using light mode.</p>
+          </div>
+
+          <div class="card">
+            <h3>Material</h3>
+            <p class="field-help">The surface behind the window. Acrylic blurs, Mica tints the wallpaper.</p>
+            <div class="radio-row">
+              <label class="radio"><input type="radio" name="material" value="acrylic" checked><span class="dot"></span>Acrylic</label>
+              <label class="radio"><input type="radio" name="material" value="mica"><span class="dot"></span>Mica</label>
+            </div>
+            <p class="field-help" id="material-fallback" hidden>Lite mode is on: this display cannot render a window backdrop, so the app is painting flat to stay fast. Acrylic and Mica come back automatically on a machine with display acceleration.</p>
+          </div>
+
+          <div class="card">
+            <h3>Accent colour</h3>
+            <p class="field-help accent-help">Applies to buttons, sliders, selection and highlights. System follows your Windows accent and updates when you change it.</p>
+            <div class="accent-row" id="accent-row"></div>
+          </div>
+        </div>
+
+        <!-- About tab -->
+        <div class="settings-tab" id="tab-about" hidden>
+          <h2>About</h2>
+          <p class="settings-sub">Version and capabilities.</p>
+
+          <div class="hero-card">
+            <a class="hero-badge" id="about-author-link" href="https://github.com/iamkrisstan2000/Chistara"
+               target="_blank" rel="noopener noreferrer" title="Open the author's GitHub — github.com/iamkrisstan2000">
+              <svg><use href="#i-aperture"/></svg>
+            </a>
+            <div class="hero-text">
+              <h2>Lehtratuh</h2>
+              <p id="about-version">Version 1.0.0 · Windows 11 build</p>
+              <p id="about-dwm" class="field-help" hidden></p>
+            </div>
+          </div>
+
+          <div class="card">
+            <p>A Windows Photo Viewer with a built-in editor. Everything stays on your PC.</p>
+            <ul class="tick-list">
+              <li>Crop, resize, flip, rotate, auto adjust</li>
+              <li>Remove tool with content-aware fill</li>
+              <li>Seven library layouts</li>
+              <li>Separate viewer and editor windows</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Supported formats</h3>
+            <p class="format-list" id="format-list"></p>
+          </div>
+
+          <div class="card credits">
+            <div class="credit-head">
+              <a class="credit-logo" id="credit-logo" href="https://iamkrisstan2000.github.io/#about"
+                 target="_blank" rel="noopener noreferrer" title="iamkrisstan2000.github.io">
+                <img src="assets/knight.png" alt="Mr Knight" width="40" height="40">
+              </a>
+              <p class="credit-line"><b>Created by Mr Knight</b></p>
+            </div>
+            <p class="credit-line">Made possible with AI.</p>
+            <p class="credit-line">November 2026</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <script src="icons.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

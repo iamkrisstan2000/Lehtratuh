@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Settings — its own native window.
+
+   This used to be an in-page overlay inside the main window, centred with
+   negative margins and moved with a `translate` drag offset. A real window gets
+   all of that for free from the OS: it can be dragged anywhere on screen, it
+   keeps its own z-order, it appears in the taskbar, and it can be resized or
+   snapped. Everything here is layout for a document that owns the whole client
+   area, so no float positioning, no scrim, no drag transform.
+   ========================================================================== */
+
+html, body { height: 100%; }
+
+body.settings-body {
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  border-radius: var(--radius-window, 8px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The surface layer, exactly as the main window paints it: one flat veil over
+   the DWM backdrop, inheriting the window radius so the four corners stay
+   rounded in every material. */
+body.settings-body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(var(--veil-rgb), calc(var(--tint) / 100));
+  z-index: 0;
+}
+html[data-material="acrylic"] body.settings-body::before {
+  background: rgba(var(--acrylic-veil), var(--acrylic-alpha));
+}
+html[data-material="mica"] body.settings-body::before {
+  background: rgba(var(--mica-veil, var(--veil-rgb)), calc(var(--tint) / 100 + 0.55));
+}
+html[data-theme="light"][data-material="mica"] body.settings-body::before {
+  background: rgba(var(--mica-veil-light-rgb), calc(var(--tint) / 100 + 0.66));
+}
+html[data-material="solid"] body.settings-body::before {
+  background: var(--surface-solid);
+}
+
+/* ------------------------------------------------------------------ title bar */
+/* 32px, the same as the main window's, so the two adjacent windows read as one
+   product rather than two apps. Whole strip is a drag handle; the caption
+   buttons opt out. */
+.settings-titlebar {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.stb-icon {
+  width: 16px; height: 16px;
+  flex: 0 0 auto;
+  color: var(--accent-text, var(--accent));
+  -webkit-app-region: no-drag;
+}
+.stb-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.stb-spacer { flex: 1 1 auto; }
+
+.settings-titlebar .wincontrols { -webkit-app-region: no-drag; }
+
+/* The caption buttons reuse the main window's `.caption-btn` look, which is
+   defined in styles.css. Only the hit area differs: this window has no
+   maximize-adjacent gaps, so the strip is exactly 46px like Explorer's. */
+.settings-titlebar .wincontrols { margin-left: auto; }
+
+/* ------------------------------------------------------------------- shell */
+.settings-window {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.settings-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 182px 1fr;
+  height: 100%;
+}
+.settings-nav {
+  border-right: 1px solid var(--stroke-1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(var(--veil-rgb), 0.14);
+  -webkit-app-region: drag;
+  overflow: hidden;
+}
+.settings-nav .nav-item { -webkit-app-region: no-drag; }
+
+.settings-nav-head {
+  /* Was a second "SETTINGS" heading under the title bar, which said the same
+     thing twice. It is now only the drag strip above the tab list. */
+  height: 26px;
+  flex: 0 0 auto;
+}
+
+.settings-content {
+  position: relative;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 20px 24px;
+}
+
+/* ------------------------------------------------------------------ about */
+/* Nothing extra: the About tab is ordinary settings content in a real window. */
+
+/* A settings window that is maximized should not keep a pocket-sized default
+   padding around a very wide page. */
+html[data-maximized="true"] .settings-content { padding-left: 32px; padding-right: 32px; }

@@ -1,0 +1,171 @@
+{
+  "name": "lehtratuh",
+  "productName": "Lehtratuh",
+  "version": "1.0.0",
+  "description": "A Fluent Photo Gallery, Editor and Viewer",
+  "main": "src/main.js",
+  "author": {
+    "name": "KnightWin",
+    "email": "iamkrisstan2000@users.noreply.github.com"
+  },
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "icons": "node scripts/make-icons.js && python3 scripts/make-icon.py",
+    "dist": "electron-builder --win --x64",
+    "dist:dir": "electron-builder --win --x64 --dir"
+  },
+  "devDependencies": {
+    "@fluentui/svg-icons": "^1.1.320",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.knightwin.lehtratuh",
+    "productName": "Lehtratuh",
+    "copyright": "Copyright © 2026 KnightWin",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "!src/icons.raw.js",
+      "!node_modules/koffi/build/koffi/darwin_*/**/*",
+      "!node_modules/koffi/build/koffi/linux_*/**/*",
+      "!node_modules/koffi/build/koffi/freebsd_*/**/*",
+      "!node_modules/koffi/build/koffi/musl_*/**/*",
+      "!node_modules/koffi/build/koffi/openbsd_*/**/*",
+      "!node_modules/koffi/build/koffi/win32_arm64/**/*",
+      "!node_modules/koffi/build/koffi/win32_ia32/**/*",
+      "!node_modules/koffi/src/**/*",
+      "!node_modules/koffi/doc/**/*",
+      "!node_modules/koffi/vendor/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/assets/app.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "legalTrademarks": ""
+    },
+    "electronLanguages": [
+      "en-US"
+    ],
+    "compression": "maximum",
+    "afterPack": "scripts/afterpack.js",
+    "asarUnpack": [
+      "node_modules/koffi/build/koffi/win32_x64/**/*"
+    ],
+    "nsis": {
+      "artifactName": "Lehtratuh-Setup-${version}.${ext}",
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lehtratuh",
+      "uninstallDisplayName": "Lehtratuh ${version}",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "installerIcon": "src/assets/app.ico",
+      "uninstallerIcon": "src/assets/app.ico",
+      "installerHeaderIcon": "src/assets/app.ico",
+      "license": "LICENSE.txt",
+      "menuCategory": false,
+      "include": "scripts/installer.nsh"
+    },
+    "fileAssociations": [
+      {
+        "ext": "jpg",
+        "name": "JPEG image",
+        "description": "JPEG image"
+      },
+      {
+        "ext": "jpeg",
+        "name": "JPEG image",
+        "description": "JPEG image"
+      },
+      {
+        "ext": "png",
+        "name": "PNG image",
+        "description": "PNG image"
+      },
+      {
+        "ext": "gif",
+        "name": "GIF image",
+        "description": "GIF image"
+      },
+      {
+        "ext": "bmp",
+        "name": "Bitmap image",
+        "description": "Bitmap image"
+      },
+      {
+        "ext": "webp",
+        "name": "WebP image",
+        "description": "WebP image"
+      },
+      {
+        "ext": "tif",
+        "name": "TIFF image",
+        "description": "TIFF image"
+      },
+      {
+        "ext": "tiff",
+        "name": "TIFF image",
+        "description": "TIFF image"
+      },
+      {
+        "ext": "ico",
+        "name": "Icon file",
+        "description": "Icon file"
+      },
+      {
+        "ext": "avif",
+        "name": "AVIF image",
+        "description": "AVIF image"
+      },
+      {
+        "ext": "heic",
+        "name": "HEIC image",
+        "description": "HEIC image"
+      },
+      {
+        "ext": "jxl",
+        "name": "JPEG XL image",
+        "description": "JPEG XL image"
+      }
+    ],
+    "afterSign": "scripts/aftersign.js"
+  },
+  "keywords": [
+    "photo viewer",
+    "image gallery",
+    "photo editor",
+    "fluent",
+    "windows 11",
+    "electron"
+  ],
+  "dependencies": {
+    "@electron/asar": "^3.4.1",
+    "koffi": "^2.16.3"
+  },
+  "homepage": "https://github.com/iamkrisstan2000/Lehtratuh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamkrisstan2000/Lehtratuh.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iamkrisstan2000/Lehtratuh/issues"
+  },
+  "private": true
+}

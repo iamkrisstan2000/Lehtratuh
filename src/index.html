@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-material="acrylic" data-viewer="false">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' lhphoto: data: blob:; img-src 'self' lhphoto: data: blob:; media-src 'self' lhphoto: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:;" />
+  <title>Lehtratuh</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+  <!-- Fluent System Icons sprite -->
+  <div id="icon-defs" hidden aria-hidden="true"></div>
+
+  <!-- ============================ Title bar ============================ -->
+  <header id="titlebar" class="titlebar">
+    <div class="titlebar-left">
+      <div class="app-badge" aria-hidden="true">
+        <svg viewBox="0 0 20 20"><use href="#i-aperture" /></svg>
+      </div>
+      <div id="app-title" class="app-title" title="Lehtratuh">Lehtratuh</div>
+    </div>
+
+    <!-- Viewer tools. Hidden at Home; revealed by html[data-viewer="true"]. -->
+    <div class="titlebar-center" id="titlebar-center">
+      <div class="cmdbar" role="toolbar" aria-label="Viewer commands">
+        <button class="cmd" data-cmd="home" title="Home (Ctrl+H)"><svg><use href="#i-home"/></svg><span>Home</span></button>
+        <button class="cmd" data-cmd="open" title="Open a photo (Ctrl+O)"><svg><use href="#i-folder_open"/></svg><span>Open</span></button>
+        <button class="cmd" data-cmd="save" title="Save a copy (Ctrl+S)"><svg><use href="#i-save"/></svg><span>Save</span></button>
+        <div class="cmd-sep"></div>
+        <button class="icon-cmd" data-cmd="prev" title="Previous (←)"><svg><use href="#i-chevron_left"/></svg></button>
+        <button class="icon-cmd" data-cmd="next" title="Next (→)"><svg><use href="#i-chevron_right"/></svg></button>
+        <button class="icon-cmd" data-cmd="zoomin" title="Zoom in (Ctrl + +)"><svg><use href="#i-zoom_in"/></svg></button>
+        <button class="icon-cmd" data-cmd="zoomout" title="Zoom out (Ctrl + -)"><svg><use href="#i-zoom_out"/></svg></button>
+        <button class="icon-cmd" data-cmd="fit" title="Fit to window (Ctrl+0)"><svg><use href="#i-zoom_fit"/></svg></button>
+        <button class="icon-cmd" data-cmd="actual" title="Actual size (Ctrl+1)"><svg><use href="#i-ratio_free"/></svg></button>
+        <button class="icon-cmd" data-cmd="rotateleft" title="Rotate left (Ctrl+,)"><svg><use href="#i-rotate_left"/></svg></button>
+        <button class="icon-cmd" data-cmd="rotateright" title="Rotate right (Ctrl+.)"><svg><use href="#i-rotate_right"/></svg></button>
+        <button class="icon-cmd" data-cmd="autoadjust" title="Auto adjust (Ctrl+E)"><svg><use href="#i-wand"/></svg></button>
+        <button class="icon-cmd" data-cmd="delete" title="Move to Recycle Bin (Del)"><svg><use href="#i-delete"/></svg></button>
+        <button class="icon-cmd" id="btn-info" title="File info (I)"><svg><use href="#i-info"/></svg></button>
+        <button class="icon-cmd" data-cmd="rename" title="Rename (F2)"><svg><use href="#i-rename"/></svg></button>
+        <!-- Discard and apply both appear only while an adjustment is staged.
+             Undo throws the staged edit away and puts the original back on
+             screen; Apply writes the previewed result over the file. Apply is
+             accented because it is the committing action, and Undo sits before
+             it so the pair reads left to right. -->
+        <button class="icon-cmd" id="btn-revert" title="Discard changes" hidden>
+          <svg><use href="#i-undo"/></svg>
+        </button>
+        <button class="icon-cmd accent" id="btn-apply" title="Apply changes to this photo" hidden>
+          <svg><use href="#i-check"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="titlebar-right">
+      <!-- Order while a photo is open: filmstrip, Photo editor, Settings. The
+           editor sits where the eye lands first and Settings moves to the far
+           right, next to the window controls, as in the request. -->
+      <button class="icon-cmd viewer-only" id="btn-filmstrip-top" title="Hide filmstrip" aria-pressed="true"><svg><use href="#i-image_multiple"/></svg></button>
+      <button class="icon-cmd accent viewer-only" data-cmd="photoeditor" title="Photo editor"><svg><use href="#i-image_pencil"/></svg></button>
+      <button class="icon-cmd" data-cmd="settings" title="Settings (Ctrl+,)"><svg><use href="#i-settings"/></svg></button>
+      <div class="wincontrols">
+        <button class="caption-btn" id="btn-min" title="Minimize"><svg><use href="#i-chrome_min"/></svg></button>
+        <button class="caption-btn" id="btn-max" title="Maximize"><svg id="max-icon"><use href="#i-chrome_max"/></svg></button>
+        <button class="caption-btn close" id="btn-close" title="Close"><svg><use href="#i-chrome_close"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ Library ============================ -->
+  <main id="library" class="library scroll-y" aria-label="Photo library">
+    <div class="library-head">
+      <div class="library-head-text">
+        <h1 id="lib-title">Home</h1>
+        <div class="lib-sub" id="lib-sub">Loading library…</div>
+      </div>
+      <div class="library-actions">
+        <div class="search-wrap">
+          <svg class="search-icon"><use href="#i-search"/></svg>
+          <input id="search" class="search" type="text" placeholder="Search photos" spellcheck="false" />
+          <button id="search-clear" class="search-clear" hidden><svg><use href="#i-dismiss"/></svg></button>
+        </div>
+        <button class="btn subtle" id="btn-change-folder">Change folder</button>
+        <button class="btn primary" id="btn-open-photo" title="Open a photo" aria-label="Open a photo"><svg><use href="#i-image_add"/></svg></button>
+      </div>
+    </div>
+
+    <div class="library-body scroll-y">
+    <div class="library-toolbar">
+      <div class="segmented" id="view-switch" role="tablist" aria-label="Library view">
+        <button data-view="cards" role="tab">Cards</button>
+        <button data-view="carousel" role="tab">Carousel</button>
+        <button data-view="collage" role="tab">Collage</button>
+        <button data-view="thumbnails" role="tab">Thumbnails</button>
+        <button data-view="tiles" role="tab" class="active">Tiles</button>
+        <button data-view="details" role="tab">Details</button>
+        <button data-view="grid" role="tab">Grid</button>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn subtle small" id="btn-sort"><svg><use href="#i-sort"/></svg><span id="sort-label">Date added</span></button>
+      </div>
+    </div>
+
+    <div id="groups" class="groups"></div>
+
+    <div id="empty-state" class="empty-state" hidden>
+      <div class="empty-art"><svg><use href="#i-image_multiple"/></svg></div>
+      <h2>No photos here yet</h2>
+      <p>Choose a folder with your pictures, or drop images anywhere in this window.</p>
+      <div class="empty-actions">
+        <button class="btn primary" id="btn-empty-folder"><svg><use href="#i-folder_open"/></svg>Choose a folder</button>
+        <button class="btn subtle" id="btn-empty-open"><svg><use href="#i-image_add"/></svg>Open a photo</button>
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <!-- ============================ Viewer ============================ -->
+  <!-- The viewer has no top bar of its own: it reuses the window title bar
+       (#titlebar) above, so there is one command strip, never two. -->
+  <section id="viewer" class="viewer" hidden aria-label="Photo viewer">
+    <!-- File info. It is a grid column, not an overlay: it owns a real slice of
+         the window and runs the full height, from under the title bar to the
+         bottom edge, so it reads as part of the window rather than a floating
+         card. See `.viewer` in styles.css for the column definition. -->
+    <aside class="info-pane" id="info-pane" hidden>
+      <div class="info-head">
+        <h3>File info</h3>
+        <button class="icon-cmd small" id="info-close"><svg><use href="#i-dismiss"/></svg></button>
+      </div>
+      <div class="info-body" id="info-body"></div>
+    </aside>
+
+    <div class="viewer-stage" id="viewer-stage">
+      <div class="stage-canvas" id="stage-canvas">
+        <img id="stage-img" alt="" draggable="false" />
+        <div class="crop-overlay" id="crop-overlay" hidden>
+          <div class="crop-rect" id="crop-rect">
+            <span class="handle nw"></span><span class="handle n"></span><span class="handle ne"></span>
+            <span class="handle w"></span><span class="handle e"></span>
+            <span class="handle sw"></span><span class="handle s"></span><span class="handle se"></span>
+          </div>
+        </div>
+      </div>
+      <button class="nav-arrow left" id="nav-prev" title="Previous"><svg><use href="#i-chevron_left"/></svg></button>
+      <button class="nav-arrow right" id="nav-next" title="Next"><svg><use href="#i-chevron_right"/></svg></button>
+      <div class="zoom-pill" id="zoom-pill">Fit</div>
+      <div class="edit-pill" id="edit-pill" hidden>Edited</div>
+    </div>
+
+    <div class="filmstrip" id="filmstrip"></div>
+
+    <div class="viewer-footer">
+      <div class="footer-left" id="viewer-meta">—</div>
+      <div class="footer-right">
+        <button class="icon-cmd small" id="btn-filmstrip" title="Toggle filmstrip"><svg><use href="#i-image_multiple"/></svg></button>
+        <div class="pos-indicator" id="viewer-pos">1 / 1</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================ Slide-over panels ============================ -->
+
+  <section class="panel" id="panel-editor" hidden aria-label="Photo editor">
+    <div class="panel-head">
+      <h2>Photo editor</h2>
+      <div class="panel-head-actions">
+        <button class="btn subtle small" id="ed-reset">Reset</button>
+        <button class="btn primary small" id="ed-save"><svg><use href="#i-save"/></svg>Save a copy</button>
+        <button class="icon-cmd small" id="ed-close"><svg><use href="#i-dismiss"/></svg></button>
+      </div>
+    </div>
+    <div class="editor-body">
+      <div class="editor-preview">
+        <canvas id="ed-canvas"></canvas>
+        <div class="editor-hint" id="ed-hint">Drag to pan · Scroll to zoom</div>
+      </div>
+      <div class="editor-controls scroll-y">
+        <div class="ed-section">
+          <h4>Adjust</h4>
+          <label class="slider-row"><span>Brightness</span><input type="range" id="adj-brightness" min="-100" max="100" value="0"><output>0</output></label>
+          <label class="slider-row"><span>Contrast</span><input type="range" id="adj-contrast" min="-100" max="100" value="0"><output>0</output></label>
+          <label class="slider-row"><span>Saturation</span><input type="range" id="adj-saturation" min="-100" max="100" value="0"><output>0</output></label>
+          <label class="slider-row"><span>Temperature</span><input type="range" id="adj-temperature" min="-100" max="100" value="0"><output>0</output></label>
+          <label class="slider-row"><span>Tint</span><input type="range" id="adj-tint" min="-100" max="100" value="0"><output>0</output></label>
+          <label class="slider-row"><span>Exposure</span><input type="range" id="adj-exposure" min="-100" max="100" value="0"><output>0</output></label>
+        </div>
+        <div class="ed-section">
+          <h4>Transform</h4>
+          <!-- Icon grid, two rows of four. Every tool is an icon button with the
+               name in its tooltip, so the row reads as one block of operations
+               instead of a stack of text buttons of unequal width. -->
+          <div class="ed-tools">
+            <button class="ed-tool" data-ed="rotl" title="Rotate left"><svg><use href="#i-rotate_left"/></svg></button>
+            <button class="ed-tool" data-ed="rotr" title="Rotate right"><svg><use href="#i-rotate_right"/></svg></button>
+            <button class="ed-tool" data-ed="fliph" title="Flip horizontally"><svg><use href="#i-flip_h"/></svg></button>
+            <button class="ed-tool" data-ed="flipv" title="Flip vertically"><svg><use href="#i-flip_v"/></svg></button>
+            <button class="ed-tool" data-ed="crop" title="Crop"><svg><use href="#i-crop"/></svg></button>
+            <button class="ed-tool" data-ed="resize" title="Resize"><svg><use href="#i-resize"/></svg></button>
+            <button class="ed-tool" data-ed="remove" title="Remove tool"><svg><use href="#i-eraser"/></svg></button>
+            <button class="ed-tool" data-ed="reset" title="Reset all edits"><svg><use href="#i-reset"/></svg></button>
+          </div>
+        </div>
+        <div class="ed-section">
+          <h4>Export</h4>
+          <label class="field-row"><span>Format</span>
+            <select id="ed-format">
+              <option value="jpeg">JPEG</option>
+              <option value="png">PNG</option>
+              <option value="webp">WebP</option>
+            </select>
+          </label>
+          <label class="field-row"><span>Quality</span>
+            <input type="range" id="ed-quality" min="40" max="100" value="92"><output>92</output>
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings lives in its own native window (settings.html). -->
+
+  <!-- ============================ Dialogs ============================ -->
+  <div class="dialog-layer" id="dialog-layer" hidden>
+    <div class="dialog" id="dialog" role="dialog" aria-modal="true">
+      <h3 id="dialog-title">Dialog</h3>
+      <p class="dialog-body" id="dialog-body"></p>
+      <div class="dialog-field" id="dialog-field" hidden>
+        <input class="text-field" id="dialog-input" spellcheck="false" />
+        <p class="field-help error" id="dialog-error" hidden></p>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn subtle" id="dialog-cancel">Cancel</button>
+        <button class="btn primary" id="dialog-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-layer" id="resize-layer" hidden>
+    <div class="dialog" id="resize-dialog" role="dialog" aria-modal="true">
+      <h3>Resize image</h3>
+      <div class="resize-grid">
+        <label class="field-row"><span>Width</span><input class="text-field small" id="rs-width" type="number" min="1"></label>
+        <label class="field-row"><span>Height</span><input class="text-field small" id="rs-height" type="number" min="1"></label>
+        <label class="check-row"><input type="checkbox" id="rs-lock" checked>Keep aspect ratio</label>
+        <label class="field-row"><span>Preset</span>
+          <select id="rs-preset">
+            <option value="">Custom</option>
+            <option value="3840">4K — 3840 px</option>
+            <option value="1920">Full HD — 1920 px</option>
+            <option value="1280">HD — 1280 px</option>
+            <option value="800">Web — 800 px</option>
+          </select>
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn subtle" id="rs-cancel">Cancel</button>
+        <button class="btn primary" id="rs-ok">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <div class="drop-overlay" id="drop-overlay" hidden>
+    <div class="drop-card">
+      <svg><use href="#i-image_add"/></svg>
+      <p>Drop photos to open them</p>
+    </div>
+  </div>
+
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>
