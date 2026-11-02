@@ -11,24 +11,26 @@
   <div id="icon-defs" hidden aria-hidden="true"></div>
 
   <section class="settings-window" id="panel-settings" aria-label="Settings">
-    <div class="settings-titlebar" id="settings-titlebar">
-      <svg class="stb-icon"><use href="#i-aperture"/></svg>
-      <span class="stb-title" id="stb-title">Settings</span>
-      <div class="stb-spacer"></div>
-      <div class="wincontrols" id="set-wincontrols">
-        <button class="caption-btn" id="set-min" title="Minimize"><svg><use href="#i-chrome_min"/></svg></button>
-        <button class="caption-btn" id="set-max" title="Maximize"><svg id="set-max-icon"><use href="#i-chrome_max"/></svg></button>
-        <button class="caption-btn close" id="set-winhide" title="Close"><svg><use href="#i-chrome_close"/></svg></button>
+    <div class="settings-shell" id="settings-shell">
+      <div class="settings-titlebar" id="settings-titlebar">
+        <svg class="stb-icon"><use href="#i-aperture"/></svg>
+        <span class="stb-title" id="stb-title">Settings</span>
+        <div class="stb-spacer"></div>
+        <div class="wincontrols" id="set-wincontrols">
+          <button class="caption-btn" id="set-min" title="Minimize"><svg><use href="#i-chrome_min"/></svg></button>
+          <button class="caption-btn" id="set-max" title="Maximize"><svg id="set-max-icon"><use href="#i-chrome_max"/></svg></button>
+          <button class="caption-btn close" id="set-winhide" title="Close"><svg><use href="#i-chrome_close"/></svg></button>
+        </div>
       </div>
-    </div>
-    <div class="settings-shell">
-      <nav class="settings-nav">
-        <div class="settings-nav-head" aria-hidden="true"></div>
-        <button class="nav-item active" data-tab="library"><svg><use href="#i-book"/></svg>Library</button>
-        <button class="nav-item" data-tab="appearance"><svg><use href="#i-appearance"/></svg>Appearance</button>
-        <button class="nav-item" data-tab="about"><svg><use href="#i-info"/></svg>About</button>
+      <nav class="settings-nav" id="settings-nav">
+        <button class="pane-toggle" id="pane-toggle" title="Collapse the sidebar" aria-expanded="true" aria-controls="settings-nav">
+          <svg id="pane-toggle-icon"><use href="#i-navigation"/></svg>
+        </button>
+        <button class="nav-item active" data-tab="library" title="Library"><svg><use href="#i-book"/></svg><span class="nav-label">Library</span></button>
+        <button class="nav-item" data-tab="appearance" title="Appearance"><svg><use href="#i-appearance"/></svg><span class="nav-label">Appearance</span></button>
+        <button class="nav-item" data-tab="about" title="About"><svg><use href="#i-info"/></svg><span class="nav-label">About</span></button>
       </nav>
-      <div class="settings-content scroll-y">
+      <div class="settings-content scroll-y" id="settings-content">
         <!-- Library tab -->
         <div class="settings-tab" id="tab-library">
           <h2>Library</h2>
@@ -154,7 +156,6 @@
 
         </div>
       </div>
-    </div>
     </div>
   </section>
 

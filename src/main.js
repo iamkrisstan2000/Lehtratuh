@@ -20,7 +20,7 @@ const { readWindowsAccent, watchWindowsAccent } = require('./accent');
 const { pathToFileURL } = require('url');
 
 const IS_WIN = process.platform === 'win32';
-const REV = 'r41';
+const REV = 'r47';
 const IS_MAC = process.platform === 'darwin';
 
 /* ------------------------------------------------------------------ */
@@ -83,7 +83,8 @@ const DEFAULTS = {
   showFilmstrip: true,
   transitions: true,
   windowBounds: null,
-  windowMaximized: false
+  windowMaximized: false,
+  settingsNavCollapsed: false  // settings window sidebar state
 };
 
 let settings = { ...DEFAULTS };
@@ -165,19 +166,33 @@ function windowsVersionLabel() {
 /* ------------------------------------------------------------------ */
 
 let mainWindow = null;
+
+/* A file handed over by the shell ("Open with", a double-click, a drag onto the
+   exe). The renderer asks for this when it has finished booting — see
+   'app:take-open'. It is deliberately a pull and not a push: pushing it on
+   did-finish-load raced the renderer's own boot, which waits on a library scan
+   before it subscribes, so the file was dropped and the app opened to the
+   library instead of the photo. */
+let pendingOpenFile = null;
+/* Set when the shell launched through the "Edit in Lehtratuh" verb, so the
+   renderer opens the photo straight into the editor instead of the viewer. */
+let pendingOpenInEditor = false;
 let settingsWindow = null;
 let lastSettingsTab = 'library';
 
 /* ---------------------------------------------------------------------------
    Two separate lines have to be dealt with, and they need different tools.
 
-   1. THE RESIZE FRAME (r30). `thickFrame: true` gives a frameless window a real
-      WS_THICKFRAME frame so it can be resized and snapped. Windows paints that
-      frame as padding around the client area — about 7 logical pixels down each
-      side, none on top or bottom. A CSS border cannot cover it because it lies
-      outside the document. The fix is Electron's own `thickFrame: false`.
-      Do NOT try to clear the style bits via SetWindowLongW: Electron re-applies
-      its style afterwards and the padding comes straight back (r29 confirmed).
+   1. THE RESIZE FRAME (r30 → r44). `thickFrame: true` gives a frameless window a
+      real WS_THICKFRAME frame. r30 turned it off because that frame put padding
+      around the client area, and the padding was worse than the hairline below.
+      r44 turned it back on: snapping, the Snap Layouts flyout and a
+      work-area-clamped maximize are all provided by the shell *only* to windows
+      that carry WS_THICKFRAME, and losing them was the bigger cost. The padding
+      is handled by the border-colour call in item 2 and by the rounding call,
+      not by dropping the style. If the padding ever comes back, do NOT try to
+      clear the style bits via SetWindowLongW: Electron re-applies its style
+      afterwards and the padding comes straight back (r29 confirmed).
 
    2. THE 1PX OUTLINE (r21). Windows 11 also strokes a hairline around the
       frame. That one is DWM's border colour:
@@ -228,10 +243,7 @@ function setCornerRounding(win, round) {
   const call = resolveDwm();
   if (!call) { lastCornerResult = 'dwmapi unavailable'; return false; }
   try {
-    const handle = win.getNativeWindowHandle();
-    const hwnd = handle.length >= 8
-      ? Number(handle.readBigUInt64LE(0))
-      : handle.readUInt32LE(0);
+    const hwnd = hwndOf(win);
     const pref = Buffer.alloc(4);
     // ROUND for Mica/Acrylic, DONOTROUND for Lite.
     pref.writeUInt32LE(round ? DWM_CORNER_ROUND : DWM_CORNER_DONOTROUND, 0);
@@ -244,6 +256,86 @@ function setCornerRounding(win, round) {
     lastCornerResult = 'threw: ' + (e && e.message);
     return false;
   }
+}
+
+/* Whether this window should be drawn with rounded corners right now.
+
+   Windows 11 rounds top-level windows, but it explicitly does *not* round them
+   when they are snapped or maximized ("Window corners are not rounded when
+   windows are snapped or maximized" — Windows 11 geometry guidance). A window
+   with a real caption gets that for free. This one is frameless, so DWM keeps
+   whatever preference we last set and would happily round a maximized window,
+   leaving four notches in the corners with the desktop showing through.
+
+   So the shape is decided here, once, from state we can observe:
+     - Lite (solid material) is square by design (r21).
+     - Maximized is square, matching the shell.
+     - Snapped is square too — a snapped window fills its half edge to edge,
+       and a rounded corner there is the notch the guidance warns about.
+   Everything else rounds. */
+function wantsRounding(win) {
+  if (settings.material === 'solid') return false;
+  try {
+    if (win.isMaximized() || win.isFullScreen()) return false;
+    if (isSnapped(win)) return false;
+  } catch { /* window went away; fall through to rounded */ }
+  return true;
+}
+
+/* Is the window flush against a work-area edge without being maximized?
+   That is what "snapped" means on Windows: a half, a quarter, or any manual
+   resize that has been dragged into an edge. A few pixels of tolerance covers
+   the shell leaving the window a hair inside the edge. */
+function isSnapped(win) {
+  try {
+    const b = win.getBounds();
+    const wa = screen.getDisplayMatching(b).workArea;
+    const tol = 2;
+    const flushLeft = Math.abs(b.x - wa.x) <= tol;
+    const flushTop = Math.abs(b.y - wa.y) <= tol;
+    const flushRight = Math.abs((b.x + b.width) - (wa.x + wa.width)) <= tol;
+    const flushBottom = Math.abs((b.y + b.height) - (wa.y + wa.height)) <= tol;
+    // One axis is enough: a snapped half is flush left+top+bottom, a quarter too.
+    const flushHoriz = flushLeft || flushRight;
+    const flushVert = flushTop || flushBottom;
+    return flushHoriz && flushVert;
+  } catch {
+    return false;
+  }
+}
+
+/* Keep a window's corner shape, and the renderer's idea of it, in step with the
+   window's actual edges.
+
+   Snapping is a move+resize that Electron reports as no single event, so the
+   edges themselves are watched. The DWM call only happens when the answer
+   actually changes, which keeps it out of the resize path. The renderer needs
+   the same answer because the page clips its own border radius too; if the two
+   disagree you get a rounded page inside a square frame, and the desktop shows
+   through the notch in the corner. */
+function watchCorners(win) {
+  let lastRounded = null;
+  let lastSnapped = null;
+  const sync = () => {
+    if (win.isDestroyed()) return;
+    const round = wantsRounding(win);
+    if (round !== lastRounded) {
+      lastRounded = round;
+      setCornerRounding(win, round);
+    }
+    let snapped = false;
+    try { snapped = !win.isMaximized() && !win.isFullScreen() && isSnapped(win); } catch { /* gone */ }
+    if (snapped !== lastSnapped) {
+      lastSnapped = snapped;
+      send(win, 'win:state', { snapped });
+    }
+  };
+  for (const ev of ['move', 'resize', 'maximize', 'unmaximize', 'restore',
+                    'enter-full-screen', 'leave-full-screen']) {
+    win.on(ev, sync);
+  }
+  win.once('ready-to-show', () => setTimeout(sync, 0));
+  return sync;
 }
 
 let dwmSetWindowAttribute = null;
@@ -259,6 +351,75 @@ function resolveDwm() {
   return dwmSetWindowAttribute;
 }
 
+/* Maximized work-area guard.
+
+   A window with a real caption is sized to the monitor's *work area* by the
+   shell when it maximizes. This one is frameless, and the frameless maximize
+   path does not always consult the work area — on a multi-monitor setup that
+   showed up as the bottom of the window running under the taskbar, or a sliver
+   past the edge of the display (r44).
+
+   This is a guard, not a layout: it measures the window's real rectangle first
+   and does nothing at all when the shell already put it on the work area, which
+   is the normal case. `win.setBounds()` is not used because Electron re-enters
+   its own maximize path; SetWindowPos is what the shell itself uses. No
+   SWP_FRAMECHANGED either — forcing a frame recalculation on an already-correct
+   maximized window makes DWM redraw the resize border, which reads as a thin
+   outline along the edges. */
+let win32 = null;
+function resolveWin32() {
+  if (win32 || !IS_WIN || !koffi) return win32;
+  try {
+    const user32 = koffi.load('user32.dll');
+    win32 = {
+      setWindowPos: user32.func('__stdcall', 'SetWindowPos',
+        'bool', ['intptr_t', 'intptr_t', 'int', 'int', 'int', 'int', 'uint32_t']),
+      getWindowRect: user32.func('__stdcall', 'GetWindowRect', 'bool', ['intptr_t', 'void *'])
+    };
+  } catch {
+    win32 = null;
+  }
+  return win32;
+}
+
+function hwndOf(win) {
+  const handle = win.getNativeWindowHandle();
+  return handle.length >= 8
+    ? Number(handle.readBigUInt64LE(0))
+    : handle.readUInt32LE(0);
+}
+
+/* SWP_NOZORDER | SWP_NOACTIVATE — deliberately no SWP_FRAMECHANGED. */
+const SWP_QUIET = 0x0004 | 0x0010;
+let lastClampResult = 'not attempted';
+function clampMaximizedToWorkArea(win) {
+  if (!IS_WIN) { lastClampResult = 'not windows'; return false; }
+  try {
+    if (win.isDestroyed() || !win.isMaximized()) { lastClampResult = 'not maximized'; return false; }
+    const api = resolveWin32();
+    if (!api) { lastClampResult = 'user32 unavailable'; return false; }
+    const wa = screen.getDisplayMatching(win.getBounds()).workArea;
+
+    /* Measure the real rectangle. On a frameless window the native widget is
+       offset from the logical bounds by its resize-hit insets, so getBounds()
+       is not what is on screen. */
+    const buf = Buffer.alloc(16);
+    if (!api.getWindowRect(hwndOf(win), buf)) { lastClampResult = 'GetWindowRect failed'; return false; }
+    const l = buf.readInt32LE(0), t = buf.readInt32LE(4);
+    const r = buf.readInt32LE(8), b = buf.readInt32LE(12);
+    if (l === wa.x && t === wa.y && r === wa.x + wa.width && b === wa.y + wa.height) {
+      lastClampResult = `already on work area ${wa.width}x${wa.height}`;
+      return true;
+    }
+    const ok = api.setWindowPos(hwndOf(win), 0, wa.x, wa.y, wa.width, wa.height, SWP_QUIET);
+    lastClampResult = ok ? `clamped ${r - l}x${b - t} -> ${wa.width}x${wa.height}` : 'SetWindowPos failed';
+    return ok;
+  } catch (e) {
+    lastClampResult = 'threw: ' + (e && e.message);
+    return false;
+  }
+}
+
 let lastStripResult = 'not attempted';
 function stripNativeBorder(win) {
   if (!IS_WIN) { lastStripResult = 'not windows'; return false; }
@@ -266,10 +427,7 @@ function stripNativeBorder(win) {
   const call = resolveDwm();
   if (!call) { lastStripResult = 'dwmapi unavailable'; return false; }
   try {
-    const handle = win.getNativeWindowHandle();
-    const hwnd = handle.length >= 8
-      ? Number(handle.readBigUInt64LE(0))
-      : handle.readUInt32LE(0);
+    const hwnd = hwndOf(win);
     const color = Buffer.alloc(4);
     color.writeUInt32LE(DWM_COLOR_NONE, 0);
     const hr = call(hwnd, DWM_BORDER_COLOR, color, 4);
@@ -290,7 +448,7 @@ function pinBorderless(win) {
     stripNativeBorder(win);
     // The corner preference is reset the same way the border colour is when DWM
     // rebuilds the frame on show or maximize, so it is re-pinned alongside it.
-    setCornerRounding(win, settings.material !== 'solid');
+    setCornerRounding(win, wantsRounding(win));
   };
   apply();
   win.once('ready-to-show', () => setTimeout(apply, 0));
@@ -342,7 +500,7 @@ function canBackdropForMaterial(material) {
   return backdropSupported() && material !== 'solid';
 }
 
-function createWindow(startupFile) {
+function createWindow(startupFile, wantsEditor = false) {
   const build = windowsBuild();
   const material = effectiveMaterial();
   const canBackdrop = canBackdropForMaterial(material);
@@ -392,15 +550,16 @@ function createWindow(startupFile) {
     backgroundColor: contentBg,
     roundedCorners: true,
     hasShadow: true,
-    // `thickFrame: false` is Electron's own switch for dropping WS_THICKFRAME,
-    // and it is the one that works. r29 tried to clear the style bits behind
-    // Electron's back with SetWindowLongW; Electron re-applies its own style
-    // after that call, so the bits came back and the resizable-frame padding
-    // stayed — seven pixels of it down each side, worse than the hairline it was
-    // meant to remove. This option is applied in the right order.
-    // Cost, by design: the window loses its drop shadow, its open/close
-    // animation, and edge-drag resizing.
-    thickFrame: false,
+    // WS_THICKFRAME stays ON. r30 turned it off to delete a few pixels of frame
+    // padding, and the cost turned out to be everything the frame provides:
+    // Aero Snap (dragging to an edge did nothing), the Snap Layouts flyout on
+    // hover over maximize, native open/close animations, and — the visible one —
+    // a maximize path that does not clamp to the monitor work area, so on a
+    // multi-monitor setup the window ran a few pixels past the screen edge.
+    // Electron resizes frameless windows through hit-testing since v40, so
+    // edge-drag resizing works without it. The padding is handled by DWM
+    // rounding plus the border-colour call below, not by removing the style.
+    thickFrame: true,
     backgroundMaterial: canBackdrop ? material : undefined,
     title: 'Lehtratuh',
     icon: path.join(__dirname, 'assets', 'app.png'),
@@ -424,7 +583,7 @@ function createWindow(startupFile) {
   pinBorderless(win);
   const reframe = () => {
     stripNativeBorder(win);
-    setCornerRounding(win, settings.material !== 'solid');
+    setCornerRounding(win, wantsRounding(win));
   };
   win.on('maximize', reframe);
   win.on('unmaximize', reframe);
@@ -470,6 +629,16 @@ function createWindow(startupFile) {
   win.on('resize', rememberBounds);
   win.on('move', rememberBounds);
 
+  /* Only on a real maximize. Snapping must never be touched — the shell owns
+     that geometry, and moving a snapped window here would drag it out of its
+     slot. */
+  const guardMaximized = () => setTimeout(() => clampMaximizedToWorkArea(win), 0);
+  win.on('maximize', guardMaximized);
+
+  // Corner shape follows the window's edges: rounded when floating, square when
+  // snapped or maximized. See watchCorners().
+  const syncCorners = watchCorners(win);
+
   win.on('closed', () => {
     windows.delete(win);
     if (mainWindow === win) mainWindow = null;
@@ -477,6 +646,9 @@ function createWindow(startupFile) {
 
   // keep renderer informed about the platform / backdrop capability
   win.webContents.on('did-finish-load', () => {
+    // A window that starts maximized or snapped must not paint rounded for a
+    // frame before the first geometry event arrives.
+    syncCorners();
     send(win, 'app:ready', {
       platform: process.platform,
       osLabel: windowsVersionLabel(),
@@ -489,8 +661,14 @@ function createWindow(startupFile) {
         chrome: process.versions.chrome,
         node: process.versions.node
       },
-      startFile: startupFile || null
+      startFile: startupFile || null,
+      startEdit: wantsEditor
     });
+    // Held until the renderer asks for it, so a slow boot cannot lose it.
+    if (startupFile) {
+      pendingOpenFile = startupFile;
+      pendingOpenInEditor = wantsEditor;
+    }
     startupFile = null;
   });
 
@@ -542,7 +720,9 @@ function createSettingsWindow(tab) {
     backgroundColor: '#00000000',
     roundedCorners: true,
     hasShadow: true,
-    thickFrame: false,
+    // Same as the main window: a real frame is what makes a window snap and
+    // maximize correctly. See the long note in createWindow().
+    thickFrame: true,
     backgroundMaterial: canBackdropForMaterial(effectiveMaterial()) ? effectiveMaterial() : undefined,
     title: 'Settings — Lehtratuh',
     icon: path.join(__dirname, 'assets', 'app.png'),
@@ -567,12 +747,17 @@ function createSettingsWindow(tab) {
   pinBorderless(win);
   const reframe = () => {
     stripNativeBorder(win);
-    setCornerRounding(win, settings.material !== 'solid');
+    setCornerRounding(win, wantsRounding(win));
   };
   win.on('maximize', reframe);
   win.on('unmaximize', reframe);
+  // Settings snaps and maximizes like any other window, so it follows the same
+  // corner rule and tells its renderer when it is flush to an edge.
+  watchCorners(win);
 
-  win.on('maximize', () => send(win, 'win:state', { maximized: true }));
+  win.on('maximize', () => {
+    send(win, 'win:state', { maximized: true });
+  });
   win.on('unmaximize', () => send(win, 'win:state', { maximized: false }));
 
   win.on('closed', () => {
@@ -622,7 +807,7 @@ function applyMaterial(win, material) {
     console.warn('[backdrop] setBackgroundMaterial failed:', err.message);
   }
   // Lite keeps square corners on purpose; Acrylic and Mica get DWM rounding.
-  setCornerRounding(win, material !== 'solid');
+  setCornerRounding(win, wantsRounding(win));
 }
 
 /* ------------------------------------------------------------------ */
@@ -666,6 +851,36 @@ function registerProtocols() {
   });
 }
 
+/* The single description of an image file, shared by the library scan, the
+   folder listing and image:describe.
+
+   Four copies of this object had drifted apart — each one recomputing ext, kind
+   and the decodable flag slightly differently. One builder keeps them honest:
+   the viewer decides what it can rotate or crop from these exact fields. */
+function makeImageEntry({ filePath, name, dir, stat, folderName }) {
+  const ext = path.extname(name).toLowerCase();
+  return {
+    path: filePath,
+    url: mediaUrl(filePath),
+    name,
+    base: path.basename(name, path.extname(name)),
+    ext: ext.slice(1).toUpperCase(),
+    size: stat.size,
+    mtime: stat.mtimeMs,
+    dir,
+    folder: folderName !== undefined ? folderName : path.basename(dir),
+    native: NATIVE_EXT.has(ext),
+    // Whether the renderer can actually put this file on a canvas. The viewer's
+    // rotate and auto adjust both go through canvas, so they are disabled for
+    // anything the browser engine cannot decode — independent of whether
+    // Electron's own native image reader can manage a thumbnail.
+    decodable: BROWSER_DECODABLE_EXT.has(ext),
+    kind: RAW_EXT.has(ext) ? 'raw'
+      : HEIF_EXT.has(ext) ? 'heif'
+      : DECODED_EXT.has(ext) ? 'decoded' : 'native'
+  };
+}
+
 function mediaUrl(filePath) {
   const normalized = filePath.replace(/\\/g, '/');
   return 'lhphoto://local/' + encodeURI(normalized);
@@ -699,24 +914,7 @@ async function listImages(dir, depth, out, budget) {
       if (!IMAGE_EXT.has(ext)) continue;
       let stat;
       try { stat = await fsp.stat(full); } catch { continue; }
-      out.push({
-        path: full,
-        url: mediaUrl(full),
-        name: entry.name,
-        base: path.basename(entry.name, path.extname(entry.name)),
-        ext: ext.slice(1).toUpperCase(),
-        size: stat.size,
-        mtime: stat.mtimeMs,
-        dir,
-        folder: path.basename(dir),
-        native: NATIVE_EXT.has(ext),
-        // Whether the renderer can actually put this file on a canvas. The
-        // viewer's rotate and auto adjust both go through canvas, so they are
-        // disabled for anything the browser engine cannot decode — independent
-        // of whether Electron's own native image reader can manage a thumbnail.
-        decodable: BROWSER_DECODABLE_EXT.has(ext),
-        kind: RAW_EXT.has(ext) ? 'raw' : HEIF_EXT.has(ext) ? 'heif' : DECODED_EXT.has(ext) ? 'decoded' : 'native'
-      });
+      out.push(makeImageEntry({ filePath: full, name: entry.name, dir, stat }));
     }
   }
   for (const d of dirs) {
@@ -747,24 +945,7 @@ async function scanLibrary(root) {
       const full = path.join(root, entry.name);
       let stat;
       try { stat = await fsp.stat(full); } catch { continue; }
-      loose.push({
-        path: full,
-        url: mediaUrl(full),
-        name: entry.name,
-        base: path.basename(entry.name, ext),
-        ext: ext.slice(1).toUpperCase(),
-        size: stat.size,
-        mtime: stat.mtimeMs,
-        dir: root,
-        folder: rootName,
-        native: NATIVE_EXT.has(ext),
-        // Whether the renderer can actually put this file on a canvas. The
-        // viewer's rotate and auto adjust both go through canvas, so they are
-        // disabled for anything the browser engine cannot decode — independent
-        // of whether Electron's own native image reader can manage a thumbnail.
-        decodable: BROWSER_DECODABLE_EXT.has(ext),
-        kind: RAW_EXT.has(ext) ? 'raw' : HEIF_EXT.has(ext) ? 'heif' : DECODED_EXT.has(ext) ? 'decoded' : 'native'
-      });
+      loose.push(makeImageEntry({ filePath: full, name: entry.name, dir: root, stat, folderName: rootName }));
     }
   }
 
@@ -972,6 +1153,7 @@ function registerIpc() {
     },
     dwmBorder: lastStripResult,
     dwmCorner: lastCornerResult,
+    maximizeClamp: lastClampResult,
     pictures: app.getPath('pictures'),
     home: app.getPath('home'),
     accent: readWindowsAccent()
@@ -1007,6 +1189,36 @@ function registerIpc() {
     return scanLibrary(root);
   });
 
+  /* Everything image-shaped in one folder, for the viewer's "open with" path.
+
+     Windows Photo Viewer opens a photo *and its folder*, so next/previous walks
+     the siblings. The library scan cannot answer that: the file may sit
+     anywhere on disk, outside the library entirely. This lists just that one
+     folder, non-recursively, and skips the paths the library scan skips. */
+  ipcMain.handle('library:list-folder', async (_e, folder) => {
+    if (!folder || typeof folder !== 'string') return [];
+    let entries;
+    try {
+      entries = await fsp.readdir(folder, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+    const out = [];
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!IMAGE_EXT.has(ext)) continue;
+      const full = path.join(folder, entry.name);
+      let stat;
+      try { stat = await fsp.stat(full); } catch { continue; }
+      out.push(makeImageEntry({ filePath: full, name: entry.name, dir: folder, stat }));
+    }
+    // Name order, numeric aware: 2 before 10, which is what a person expects
+    // when stepping through a folder.
+    out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return out;
+  });
+
   ipcMain.handle('dialog:folder', async () => {
     const res = await dialog.showOpenDialog(mainWindow, {
       title: 'Choose a photo folder',
@@ -1036,20 +1248,12 @@ function registerIpc() {
     const stat = await fsp.stat(filePath).catch(() => null);
     if (!stat) return null;
     return {
-      path: filePath,
-      url: mediaUrl(filePath),
-      name: path.basename(filePath),
-      base: path.basename(filePath, path.extname(filePath)),
-      ext: path.extname(filePath).slice(1).toUpperCase(),
-      size: stat.size,
-      mtime: stat.mtimeMs,
-      dir: path.dirname(filePath),
-      folder: path.basename(path.dirname(filePath)),
-      native: NATIVE_EXT.has(path.extname(filePath).toLowerCase()),
-      decodable: BROWSER_DECODABLE_EXT.has(path.extname(filePath).toLowerCase()),
-      kind: RAW_EXT.has(path.extname(filePath).toLowerCase()) ? 'raw'
-        : HEIF_EXT.has(path.extname(filePath).toLowerCase()) ? 'heif'
-        : DECODED_EXT.has(path.extname(filePath).toLowerCase()) ? 'decoded' : 'native',
+      ...makeImageEntry({
+        filePath,
+        name: path.basename(filePath),
+        dir: path.dirname(filePath),
+        stat
+      }),
       info: imageInfo(filePath)
     };
   });
@@ -1136,15 +1340,16 @@ function registerIpc() {
     }
   });
 
-  ipcMain.handle('shell:showProperties', async (_e, filePath) => {
-    if (IS_WIN) {
-      shell.showItemInFolder(filePath);
-      return true;
-    }
-    return false;
+  /* The renderer calls this once it is ready to show a photo. Handing the file
+     over here rather than pushing it means the launch order no longer matters:
+     Explorer can start the app with a file at any point in its boot. */
+  ipcMain.handle('app:take-open', () => {
+    const file = pendingOpenFile;
+    const edit = pendingOpenInEditor;
+    pendingOpenFile = null;
+    pendingOpenInEditor = false;
+    return file ? { file, edit } : null;
   });
-
-  ipcMain.handle('app:version', () => app.getVersion());
 
   // window controls
   ipcMain.on('win:theme', (event, mode) => {
@@ -1197,9 +1402,15 @@ function registerIpc() {
 /* A shell launch ("Open with", double-click, drag-onto-exe) hands the file in
    argv. Strip the surrounding quotes Windows sometimes leaves in place, and
    resolve relative paths against the working directory so the renderer always
-   gets something absolute. */
-function startupFilePath() {
-  for (const arg of process.argv.slice(1)) {
+   gets something absolute.
+
+   Takes the argv to read, because there are two of them: this process's own,
+   and the one that arrives with a `second-instance` event. Reading
+   `process.argv` there instead was a bug — it is the *first* instance's command
+   line, so opening a photo while the app was already running found nothing and
+   simply focused the window. */
+function filePathFromArgs(argv) {
+  for (const arg of argv) {
     const raw = String(arg || '').replace(/^"|"$/g, '').trim();
     if (!raw || raw.startsWith('-')) continue;
     if (!IMAGE_EXT.has(path.extname(raw).toLowerCase())) continue;
@@ -1210,6 +1421,10 @@ function startupFilePath() {
     }
   }
   return null;
+}
+
+function startupFilePath() {
+  return filePathFromArgs(process.argv.slice(1));
 }
 
 /* ------------------------------------------------------------------ */
@@ -1268,8 +1483,8 @@ function setupJumpList() {
 
 /* A folder in argv means "open the library here", which is what the jump list's
    Library entry passes. */
-function startupFolder() {
-  for (const arg of process.argv.slice(1)) {
+function startupFolder(argv = process.argv.slice(1)) {
+  for (const arg of argv) {
     const raw = String(arg || '').replace(/^"|"$/g, '').trim();
     if (!raw || raw.startsWith('-')) continue;
     try {
@@ -1287,7 +1502,9 @@ if (!gotLock) {
      second instance with the file path in argv; hand it to the existing window
      instead of opening a second process. */
   app.on('second-instance', (_e, argv) => {
-    const file = startupFilePath();
+    // The file is in the *incoming* argv, not this process's.
+    const file = filePathFromArgs(argv || []);
+    const edit = (argv || []).includes('--edit');
     if (settingsWindow && !settingsWindow.isDestroyed() && settingsWindow.isFocused() && !file) return;
     if (!mainWindow || mainWindow.isDestroyed()) {
       createWindow(file || null);
@@ -1296,7 +1513,15 @@ if (!gotLock) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
-    if (file) send(mainWindow, 'app:open-file', file);
+    if (file) {
+      /* Both routes are armed on purpose. The push opens the photo immediately
+         when the window is already listening; if it is still booting the push
+         lands nowhere, and the renderer's own 'app:take-open' picks the file up
+         instead. Whichever arrives first wins, and the pull clears the slot. */
+      pendingOpenFile = file;
+      pendingOpenInEditor = edit;
+      send(mainWindow, 'app:open-file', { file, edit });
+    }
   });
 
   app.commandLine.appendSwitch('enable-features', 'CanvasOopRasterization');
@@ -1335,7 +1560,8 @@ app.whenReady().then(() => {
     // The jump list's "Open a photo" task passes no path; honour it by opening
     // the picker once the window is up.
     const wantsPicker = process.argv.includes('--open-file') && !startupFilePath();
-    createWindow(startupFilePath());
+    const launchFile = startupFilePath();
+    createWindow(launchFile, process.argv.includes('--edit') && !!launchFile);
     if (wantsPicker && mainWindow) {
       mainWindow.webContents.once('did-finish-load', () => {
         setTimeout(() => send(mainWindow, 'app:pick-file', true), 400);

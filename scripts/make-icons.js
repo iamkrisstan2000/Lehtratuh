@@ -8,6 +8,7 @@ const out = path.join(__dirname, '..', 'src', 'icons.js');
 // key -> candidate file names (first existing wins)
 const ICONS = {
   home: ['home_20_regular', 'home_24_regular'],
+  navigation: ['line_horizontal_3_20_regular'],
   folder: ['folder_20_regular'],
   folder_open: ['folder_open_20_regular'],
   image: ['image_20_regular'],

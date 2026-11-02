@@ -45,22 +45,81 @@ html[data-material="solid"] body.settings-body::before {
   background: var(--surface-solid);
 }
 
-/* ------------------------------------------------------------------ title bar */
-/* 32px, the same as the main window's, so the two adjacent windows read as one
-   product rather than two apps. Whole strip is a drag handle; the caption
-   buttons opt out. */
+/* Same rule as the main window: a maximized or snapped window is square on
+   Windows. The body carries the 8px radius and the surface layer inherits it,
+   so both have to be squared or the page keeps clipping its own corners inside
+   a square frame and the desktop shows through the notches. */
+html[data-maximized="true"] body.settings-body,
+html[data-snapped="true"] body.settings-body,
+html[data-maximized="true"] .settings-titlebar,
+html[data-snapped="true"] .settings-titlebar,
+html[data-maximized="true"] .settings-nav,
+html[data-snapped="true"] .settings-nav {
+  border-radius: 0;
+}
+
+/* ------------------------------------------------------- title bar + sidebar
+   The title bar and the sidebar are one continuous surface, not a strip sitting
+   above a panel. They share the same background, the same left edge and — the
+   part that actually sells it — no border between them: the separator line that
+   used to run under the title bar now stops where the sidebar's right edge
+   begins, so the eye reads one column that happens to carry the window controls.
+
+   Both are grid cells of #settings-shell:
+       titlebar  | (content column, row 1)
+       nav       | content
+   ------------------------------------------------------------------------- */
+
+.settings-shell {
+  /* Declared on the shell so both the title bar and the nav inherit the same
+     value — otherwise the two surfaces drift apart by a hairline. */
+  --nav-bg: rgba(var(--veil-rgb), 0.14);
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--nav-w, 200px) 1fr;
+  grid-template-rows: 40px 1fr;
+  height: 100%;
+  transition: grid-template-columns 180ms var(--ease, ease);
+}
+
 .settings-titlebar {
+  grid-column: 1 / 3;
+  grid-row: 1;
+  /* The hamburger now lives in the sidebar, so the app mark leads the row and
+     starts on the same 16px margin as the Library icon under it. */
+  padding-left: 16px;
+  /* Rounded to the window's own corner radius so the merged block follows the
+     frame instead of filling a square hole inside it. */
+  border-top-left-radius: var(--radius-window, 8px);
+  border-top-right-radius: var(--radius-window, 8px);
+  overflow: hidden;
   position: relative;
-  z-index: 2;
-  flex: 0 0 auto;
-  height: 32px;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 12px;
+  padding-left: 6px;
+  /* The same wash as the nav below it, so the two read as one column. */
+  background: var(--nav-bg);
   -webkit-app-region: drag;
   user-select: none;
+  /* No bottom border: that is the whole point of merging the two. */
+  border-bottom: 0;
 }
+/* The one hairline the shell still needs: it separates the *content* pane from
+   the title bar, and is clipped so it never runs under the sidebar. */
+.settings-titlebar::after {
+  content: "";
+  position: absolute;
+  left: var(--nav-w, 200px);
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--stroke-1);
+  transition: left 180ms var(--ease, ease);
+}
+
 .stb-icon {
   width: 16px; height: 16px;
   flex: 0 0 auto;
@@ -68,19 +127,70 @@ html[data-material="solid"] body.settings-body::before {
   -webkit-app-region: no-drag;
 }
 .stb-title {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-2);
+  color: var(--text-1);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stb-spacer { flex: 1 1 auto; }
+.settings-titlebar .wincontrols {
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  /* The shared `.wincontrols` is sized for the main window's 46px title bar.
+     This window's bar is 40px, so the buttons hung 6px below the separator and
+     sat on top of the content edge. Pin them to this bar's height instead. */
+  height: 100%;
+  align-self: stretch;
+  margin-right: 0;
+}
+.settings-titlebar .caption-btn { height: 100%; }
+/* The close button owns the top-right corner, so it takes the shell's radius
+   rather than sitting in it as a sharp rectangle. */
+.settings-titlebar .caption-btn.close {
+  border-top-right-radius: var(--radius-window, 8px);
+  border-top-left-radius: 0;
+}
 
-.settings-titlebar .wincontrols { -webkit-app-region: no-drag; }
+/* The collapse control is the first item of the sidebar itself, above Library,
+   where a hamburger belongs. It is not a caption-bar control any more. */
+.pane-toggle {
+  width: 32px; height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  margin: 0 0 6px 2px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.pane-toggle:hover { background: var(--hover-1); color: var(--text-1); }
+.pane-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pane-toggle svg { width: 16px; height: 16px; }
 
-/* The caption buttons reuse the main window's `.caption-btn` look, which is
-   defined in styles.css. Only the hit area differs: this window has no
-   maximize-adjacent gaps, so the strip is exactly 46px like Explorer's. */
-.settings-titlebar .wincontrols { margin-left: auto; }
+/* Collapsed: the grid column goes to zero and the chevron flips. Labels are
+   hidden rather than scaled so nothing squashes mid-animation. */
+/* Collapsed is an icon rail, not a vanished panel: the tab icons stay, the
+   labels go, and the column narrows to just the glyphs. Hiding the sidebar
+   entirely lost the only way to see which tab you are on. */
+.settings-shell.nav-collapsed { --nav-w: 52px; }
+.settings-shell.nav-collapsed .settings-nav { padding-left: 10px; padding-right: 10px; }
+.settings-shell.nav-collapsed .pane-toggle { margin-left: 0; }
+.settings-shell.nav-collapsed .nav-label { display: none; }
+.settings-shell.nav-collapsed .pane-toggle { background: var(--hover-1); color: var(--text-1); }
+.settings-shell.nav-collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+/* The accent bar that marks the active tab would hang outside a 32px rail
+   button, so the selection is carried by the fill and the icon colour instead. */
+.settings-shell.nav-collapsed .nav-item.active::before { display: none; }
+.settings-shell.nav-collapsed .nav-item.active svg { color: var(--accent); }
 
 /* ------------------------------------------------------------------- shell */
 .settings-window {
@@ -91,37 +201,32 @@ html[data-material="solid"] body.settings-body::before {
   display: flex;
   flex-direction: column;
 }
-.settings-shell {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 182px 1fr;
-  height: 100%;
-}
+
 .settings-nav {
+  grid-column: 1;
+  grid-row: 2;
+  background: var(--nav-bg);
+  /* Continue the curve down the left edge; the outer corner of the window is
+     below this element, but the inner one is its own. */
+  border-bottom-left-radius: var(--radius-window, 8px);
   border-right: 1px solid var(--stroke-1);
-  padding: 8px;
+  padding: 6px 8px 8px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: rgba(var(--veil-rgb), 0.14);
-  -webkit-app-region: drag;
   overflow: hidden;
+  min-width: 0;
+  -webkit-app-region: drag;
 }
 .settings-nav .nav-item { -webkit-app-region: no-drag; }
 
-.settings-nav-head {
-  /* Was a second "SETTINGS" heading under the title bar, which said the same
-     thing twice. It is now only the drag strip above the tab list. */
-  height: 26px;
-  flex: 0 0 auto;
-}
-
 .settings-content {
+  grid-column: 2;
+  grid-row: 2;
   position: relative;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 20px 24px;
+  padding: 14px 24px 26px;
 }
 
 /* ------------------------------------------------------------------ about */

@@ -54,12 +54,24 @@
     resetState();
 
     ui.panel.hidden = false;
-    ui.scrim.hidden = false;
+    // Defensive: this used to be an unguarded `ui.scrim.hidden = false`. When the
+    // scrim element was removed from the document during a refactor, that line
+    // threw before any pixels were drawn, so the editor opened to an empty
+    // checkerboard with no explanation. A missing decorative layer must never be
+    // able to stop the photo from loading.
+    if (ui.scrim) ui.scrim.hidden = false;
     setStatus('Loading photo…');
 
     try {
       ed.src = await loadImage(img.url);
+      // A zero-sized decode would otherwise paint nothing and look identical to
+      // the failure above.
+      if (!ed.src.naturalWidth || !ed.src.naturalHeight) {
+        throw new Error('empty image');
+      }
     } catch (err) {
+      ui.panel.hidden = true;
+      if (ui.scrim) ui.scrim.hidden = true;
       window.LHUI.toast('This file cannot be decoded by the editor', 'err', 3600);
       return;
     }
@@ -98,6 +110,11 @@
   function close() {
     if (!ui.panel) return;
     ui.panel.hidden = true;
+    /* open() raises the scrim; nothing ever took it back down. Closing the
+       editor therefore left the whole window sitting under a dim overlay —
+       the photo and the filmstrip went dark and the app looked stuck. The
+       scrim belongs to the editor, so it leaves with the editor. */
+    if (ui.scrim) ui.scrim.hidden = true;
     ed.tool = 'none';
     ed.cropSel = null;
     $$('.ed-crop-bar').forEach((n) => n.remove());

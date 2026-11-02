@@ -220,7 +220,25 @@ function switchTab(tab) {
 
 /* --------------------------------------------------------------------- wire */
 
+let setNavCollapsed = () => {};
+
 function wire() {
+  const shell = $('#settings-shell');
+  const toggle = $('#pane-toggle');
+
+  /* Sidebar collapse. The grid column goes to zero and the labels are removed
+     rather than squeezed, so nothing looks mangled halfway through. The state is
+     saved with the rest of the settings and restored on next open. */
+  setNavCollapsed = function (collapsed, persist) {
+    shell.classList.toggle('nav-collapsed', collapsed);
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggle.title = collapsed ? 'Expand the sidebar' : 'Collapse the sidebar';
+    if (persist) patch({ settingsNavCollapsed: collapsed });
+  };
+  toggle.addEventListener('click', () => {
+    setNavCollapsed(!shell.classList.contains('nav-collapsed'), true);
+  });
+
   $('#set-min').addEventListener('click', () => window.lh.win.action('minimize'));
   $('#set-max').addEventListener('click', () => window.lh.win.action('maximize'));
   $('#set-winhide').addEventListener('click', () => window.lh.win.action('close'));
@@ -305,7 +323,10 @@ function wire() {
     syncUi();
   });
 
-  window.lh.events.state(({ maximized }) => {
+  window.lh.events.state(({ maximized, snapped }) => {
+    if (snapped !== undefined) {
+      document.documentElement.dataset.snapped = String(snapped);
+    }
     if (maximized === undefined) return;
     document.documentElement.dataset.maximized = String(maximized);
     const icon = $('#set-max-icon');
@@ -365,6 +386,7 @@ async function boot() {
   fillAbout(state.info);
   wire();
   switchTab(requestedTab || 'library');
+  setNavCollapsed(!!state.settings.settingsNavCollapsed, false);
 
   const max = await window.lh.win.isMaximized();
   document.documentElement.dataset.maximized = String(max);

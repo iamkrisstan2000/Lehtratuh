@@ -7,36 +7,46 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [1.0.0] — 2026-11-01
+## [1.5.0] — 2026-11-02
 
-The first public release.
+The first public release. Lehtratuh installs as a real Windows application and
+registers itself as an image viewer, so photos open straight from Explorer.
 
 ### Added
 
-- **Seven library layouts** — Cards, Carousel, Collage, Thumbnails, Tiles,
-  Details and Grid, with folder grouping, search and seven sort orders.
-- **Photo viewer** — arrow-key navigation, fit/actual size, zoom, filmstrip,
-  file info pane and a fullscreen mode.
-- **Photo editor** — crop (free, square, fixed ratios), rotate and flip, resize,
-  auto adjust (brightness, contrast, saturation) and a content-aware remove tool.
-  Edits can be saved as a copy or written back over the original.
-- **Windows 11 materials** — Mica and Acrylic window backdrops, rounded corners,
-  light and dark themes, and live system accent colour sync. Lite is used
-  automatically on machines that cannot render a backdrop.
-- **Separate Settings window** — its own native window with library, appearance
-  and about tabs. Changes apply to the open library immediately.
-- **Windows shell integration** — registers as an "Open with" handler for JPG,
-  PNG, GIF, BMP, WebP, TIFF, AVIF, HEIC and JPEG XL, with an App Paths entry and
-  a taskbar jump list.
-- **Installer** — per-machine NSIS setup with a custom install location, Desktop
-  and Start Menu shortcuts, and a standard uninstaller.
+- **Open with Lehtratuh.** Double-click a photo, or pick Lehtratuh from the
+  Open with menu, and it opens directly in the viewer — not the library.
+- **The whole folder comes with it.** The viewer lists every image beside the
+  opened photo, so Next and Previous walk the folder the way Windows Photo
+  Viewer does. The filmstrip fills with the same set and the counter reads
+  `3 / 11` rather than `1 / 1`.
+- **Edit in Lehtratuh** as a second Explorer verb, opening the photo straight
+  into the editor.
+- File type registration for JPEG, PNG, GIF, BMP, WebP, TIFF, ICO, AVIF, HEIC
+  and JXL.
+- Seven library views — Tiles, Cards, Carousel, Collage, Thumbnails, Details and
+  Grid — with sorting by name, date or size.
+- A photo editor with crop, resize, rotate, flip and live brightness, contrast,
+  exposure, saturation, temperature and tint.
+- Mica, Acrylic and Solid window materials, following the Windows accent colour.
+- A portable build alongside the installer, for running without installation.
 
-### Known limitations
+### Fixed
 
-- AVIF, HEIC, HEIF, JPEG XL and TIFF can be viewed but not re-encoded in the
-  viewer. Rotate, flip and auto adjust are disabled for these formats and explain
-  why in their tooltip; the editor's rotate and *Save a copy* still work.
-- RAW files show an embedded preview rather than a decoded image.
-- Windows 10 and 11, 64-bit only.
+- A photo opened from Explorer showed as the only photo, with no way to reach
+  the others in its folder.
+- Opening a second photo while Lehtratuh was already running did nothing but
+  focus the window, because the incoming file was never read.
+- The sort button always read "Date added", whatever order was chosen.
+- Closing the editor left the window dimmed until the app restarted.
+- Maximised and snapped windows kept a rounded corner and a visible outline.
 
-[1.0.0]: https://github.com/iamkrisstan2000/Lehtratuh/releases/tag/v1.0.0
+### Notes
+
+- Windows 11 and Windows 10, 64-bit.
+- Versions 1.1.2, 1.1.3 and 1.1.4 were internal builds and were never published.
+  Their changes are included in 1.5.0.
+
+---
+
+[1.5.0]: https://github.com/iamkrisstan2000/Lehtratuh/releases/tag/v1.5.0

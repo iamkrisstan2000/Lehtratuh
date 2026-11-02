@@ -94,9 +94,6 @@
   color: var(--text-3);
   font-weight: 600;
 }
-.ed-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-.ed-row .btn { flex: 1 1 auto; min-width: 68px; }
-
 /* Transform: a grid of square icon buttons, four per row. Sized from the mockup
    — 38px square, 10px radius, 1px outline, 6px gap. */
 .ed-tools {

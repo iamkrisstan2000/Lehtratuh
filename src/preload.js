@@ -10,6 +10,9 @@ const on = (channel) => (cb) => {
 
 contextBridge.exposeInMainWorld('lh', {
   info: () => ipcRenderer.invoke('app:info'),
+  /* The file the shell launched us with, if any. Pulled rather than pushed so a
+     slow renderer boot cannot miss it. */
+  takeOpen: () => ipcRenderer.invoke('app:take-open'),
   platform: process.platform,
 
   settings: {
@@ -23,7 +26,10 @@ contextBridge.exposeInMainWorld('lh', {
     scan: (folder) => ipcRenderer.invoke('library:scan', folder),
     chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
     openImages: () => ipcRenderer.invoke('dialog:openImages'),
-    describe: (filePath) => ipcRenderer.invoke('image:describe', filePath)
+    describe: (filePath) => ipcRenderer.invoke('image:describe', filePath),
+    /* One folder's images, for opening a photo from Explorer and walking its
+       siblings the way Windows Photo Viewer does. */
+    listFolder: (folder) => ipcRenderer.invoke('library:list-folder', folder)
   },
 
   image: {

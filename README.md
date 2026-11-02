@@ -8,22 +8,11 @@ and remove objects — without uploading anything anywhere.
 
 Everything runs on your own PC.
 
-## Screenshots 
-
-
-<img width="1919" height="1079" alt="Screenshot 2026-11-01 230823" src="https://github.com/user-attachments/assets/b4400f32-7a82-4ac4-b33c-a0785a4fb57b" />
-<img width="1919" height="1079" alt="Screenshot 2026-11-01 230817" src="https://github.com/user-attachments/assets/7344a07b-da00-4a8a-bef0-119543bcc542" />
-<img width="1919" height="1079" alt="Screenshot 2026-11-01 230530" src="https://github.com/user-attachments/assets/4eea0910-ca07-47e0-af1b-358557f160c9" />
-<img width="1919" height="1079" alt="Screenshot 2026-11-01 230514" src="https://github.com/user-attachments/assets/ca13c586-0df9-4931-a2e7-900be6ba8a2b" />
-<img width="1919" height="1079" alt="Screenshot 2026-11-01 230446" src="https://github.com/user-attachments/assets/f8a1d2b5-ac84-492e-bcb8-78fb45c04cf6" />
-<img width="1919" height="1079" alt="Screenshot 2026-11-01 230827" src="https://github.com/user-attachments/assets/847a9713-d29b-4851-9ded-d720c3c21471" />
-
-
 ---
 
 ## Install
 
-1. Download **`Lehtratuh-Setup-1.0.0.exe`**.
+1. Download **`Lehtratuh-Setup-1.5.0.exe`**.
 2. Run it. Windows will ask for administrator permission, because the installer
    registers Lehtratuh as an image viewer for the whole machine.
 3. Pick a folder, or keep the default. Done.
@@ -66,8 +55,16 @@ system accent colour, light and dark themes, and a title bar that behaves.
 
 ## Opening photos from Explorer
 
-The installer adds Lehtratuh to **Open with** for JPG, PNG, GIF, BMP, WebP, TIFF,
-AVIF, HEIC and JPEG XL. Right-click any photo → *Open with* → *Lehtratuh*.
+The installer adds Lehtratuh to **Open with** for JPG, JPEG, PNG, GIF, BMP, WebP,
+TIFF, ICO, AVIF, HEIC and JPEG XL. Right-click any photo → *Open with* →
+*Lehtratuh*.
+
+The photo opens straight in the viewer, and **the rest of its folder comes with
+it** — Next and Previous walk the other images beside it, exactly like Windows
+Photo Viewer, with the filmstrip along the bottom.
+
+There is a second verb too: *Edit in Lehtratuh* opens the photo directly in the
+editor.
 
 It is not forced as your default viewer — that stays your choice. To make it the
 default, use *Windows Settings → Apps → Default apps → Lehtratuh*.

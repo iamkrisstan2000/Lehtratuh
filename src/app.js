@@ -23,6 +23,10 @@ const state = {
   images: [],
   filtered: [],
   current: -1,
+  /* A folder opened from Explorer, so the viewer can walk it. Cached per folder
+     and cleared when the viewer closes. */
+  externalDir: null,
+  externalSiblings: null,
   query: '',
   selected: new Set(),
   viewImage: null,
@@ -111,6 +115,7 @@ function debounce(fn, ms) {
 /* ------------------------------------------------------------------ theme */
 
 function applyTheme() {
+  if (!state.settings) return;
   const s = state.settings;
   const mode = s.mode === 'system' ? (state.systemDark ? 'dark' : 'light') : s.mode;
   const root = document.documentElement;
@@ -146,7 +151,10 @@ async function detectSystemTheme() {
   state.systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
     state.systemDark = e.matches;
-    if (state.settings.mode === 'system') applyTheme();
+    /* This listener is registered before settings are loaded, and a theme flip
+       can land in that window. applyTheme() reads state.settings, so guard it
+       or the boot promise rejects and the library never renders. */
+    if (state.settings && state.settings.mode === 'system') applyTheme();
   });
 }
 
@@ -165,13 +173,16 @@ async function scanLibrary(root) {
   state.library = res;
   state.images = res.groups.flatMap((g) => g.images);
   applySort();
+  syncSortLabel();
   renderLibrary();
 }
 
-function applySort() {
-  const s = state.settings;
-  const list = [...state.images];
-  switch (s.sort) {
+/* Sort any list of photos the way the current setting says. Shared by the
+   library and by a folder opened from Explorer, so next/previous means the same
+   thing in both. */
+function sortList(input, key = state.settings.sort) {
+  const list = [...input];
+  switch (key) {
     case 'name-asc': list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })); break;
     case 'name-desc': list.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true })); break;
     case 'date-desc': list.sort((a, b) => b.mtime - a.mtime); break;
@@ -180,7 +191,11 @@ function applySort() {
     case 'size-asc': list.sort((a, b) => a.size - b.size); break;
     default: list.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
   }
-  state.sorted = list;
+  return list;
+}
+
+function applySort() {
+  state.sorted = sortList(state.images, state.settings.sort);
 }
 
 function currentList() {
@@ -197,6 +212,15 @@ function renderLibrary() {
   groupsEl.innerHTML = '';
 
   const s = state.settings;
+  // Keep the view selector's selected pill in step with the active layout. This
+  // used to ride along in syncSettingsUi(), which now lives in the settings
+  // window — so the pill stayed on whichever button was marked `active` in the
+  // markup (Tiles) no matter what the user picked.
+  $$('#view-switch button').forEach((b) => {
+    const on = b.dataset.view === s.libraryView;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
   const list = currentList();
   state.filtered = list;
 
@@ -569,24 +593,99 @@ function openViewer(filePath) {
   buildFilmstrip();
 }
 
+/* Opens a photo that came from outside the app — Explorer's "Open with", a
+   double-click, a file dropped on the exe.
+
+   Windows Photo Viewer opens the photo *and its folder*, so next/previous walks
+   the siblings. This does the same: the file's own folder is listed and the
+   viewer can page through all of it. Two shortcuts sit in front of that search
+   because the common case should be instant:
+     - the file is already in the library, so its list is right here;
+     - the viewer is already sitting on that folder, so re-listing is wasted. */
 async function showViewerForExternal(filePath, extraPaths) {
   const paths = (extraPaths && extraPaths.length) ? extraPaths : [filePath];
-  const entries = [];
-  for (const p of paths) {
-    const existing = state.sorted.find((i) => i.path === p);
-    if (existing) { entries.push(existing); continue; }
-    const meta = await window.lh.library.describe(p);
-    if (!meta) continue;
-    entries.push({
-      path: meta.path, url: meta.url, name: meta.name, base: meta.base, ext: meta.ext,
-      size: meta.size, mtime: meta.mtime, dir: meta.dir, folder: meta.folder,
-      native: meta.native, kind: meta.kind
-    });
+  const target = paths[0];
+
+  // 1. Already in the library: the whole library stays navigable.
+  const inLibrary = state.sorted.find((i) => i.path === target);
+  if (inLibrary) {
+    state.filtered = state.sorted;
+    $('#library').hidden = true;
+    $('#viewer').hidden = false;
+    setViewerMode(true, inLibrary.name);
+    showImage(inLibrary);
+    buildFilmstrip();
+    return;
   }
+
+  // 2. The browser was opened with double-click / "Open with" and cannot list a
+  //    folder; anything more than one path was handed over as a selection.
+  if (!window.lh.library.listFolder) {
+    await showExplicitPaths(paths);
+    return;
+  }
+
+  const meta = await window.lh.library.describe(target);
+  if (!meta) { toast('Could not open that file', 'err'); return; }
+
+  // 3. List the photo's folder. Reuse it when the viewer is already on it, so
+  //    flipping between two photos in one folder does not re-read the disk.
+  let siblings = null;
+  if (state.externalDir === meta.dir && state.externalSiblings && state.externalSiblings.length) {
+    siblings = state.externalSiblings;
+  } else {
+    // A selection of several files wins over the folder: that is what the user
+    // picked, and it is what Windows does with a multi-select too.
+    if (paths.length > 1) {
+      siblings = await listPaths(paths);
+    } else {
+      siblings = await window.lh.library.listFolder(meta.dir).catch(() => []);
+    }
+    state.externalDir = meta.dir;
+    state.externalSiblings = siblings || [];
+  }
+
+  // The file itself must be in the list even when the folder read failed.
+  const list = siblings && siblings.length ? [...siblings] : [];
+  if (!list.some((i) => i.path === meta.path)) list.push(toEntry(meta));
+  /* Walk the list in the same order the library would, so next/previous means
+     the same thing whether the folder was opened from Explorer or from Home.
+     'added-desc' has no meaning outside the library scan, so it falls back to
+     the name order the folder listing already uses. */
+  const order = state.settings.sort === 'added-desc' ? 'name-asc' : state.settings.sort;
+  const ordered = sortList(list, order);
+  state.filtered = ordered;
+
+  const start = Math.max(0, ordered.findIndex((i) => i.path === meta.path));
+  $('#library').hidden = true;
+  $('#viewer').hidden = false;
+  setViewerMode(true, ordered[start].name);
+  showImage(ordered[start]);
+  buildFilmstrip();
+}
+
+function toEntry(meta) {
+  return {
+    path: meta.path, url: meta.url, name: meta.name, base: meta.base, ext: meta.ext,
+    size: meta.size, mtime: meta.mtime, dir: meta.dir, folder: meta.folder,
+    native: meta.native, decodable: meta.decodable, kind: meta.kind
+  };
+}
+
+async function listPaths(paths) {
+  const out = [];
+  for (const p of paths) {
+    const meta = await window.lh.library.describe(p);
+    if (meta) out.push(toEntry(meta));
+  }
+  return out;
+}
+
+/* Last resort when the folder cannot be listed — one entry, still viewable. */
+async function showExplicitPaths(paths) {
+  const entries = await listPaths(paths);
   if (!entries.length) { toast('Could not open those files', 'err'); return; }
-  // if the requested file lives inside the library, keep the whole library navigable
-  const first = state.sorted.find((i) => i.path === entries[0].path);
-  state.filtered = first ? state.sorted : entries;
+  state.filtered = entries;
   $('#library').hidden = true;
   $('#viewer').hidden = false;
   setViewerMode(true, entries[0].name);
@@ -597,6 +696,11 @@ async function showViewerForExternal(filePath, extraPaths) {
 function closeViewer() {
   $('#viewer').hidden = true;
   $('#library').hidden = false;
+  /* Back to the library: drop the folder list an external open put in place, or
+     the grid would render that folder instead of the library. */
+  state.filtered = [];
+  state.externalDir = null;
+  state.externalSiblings = null;
   setViewerMode(false);
   setTitleBarText(APP_NAME);
   $('#info-pane').hidden = true;
@@ -1707,13 +1811,18 @@ function wire() {
     }, 90);
   });
 
-  window.lh.events.state(({ maximized, fullscreen }) => {
+  window.lh.events.state(({ maximized, fullscreen, snapped }) => {
     if (maximized !== undefined) {
       document.documentElement.dataset.maximized = String(maximized);
       $('#max-icon').innerHTML = `<use href="#i-chrome_${maximized ? 'restore' : 'max'}"/>`;
     }
     if (fullscreen !== undefined) {
       document.documentElement.dataset.fullscreen = String(fullscreen);
+    }
+    // A snapped window is square on Windows, same as a maximized one. The main
+    // process works it out from live geometry, so page and frame agree.
+    if (snapped !== undefined) {
+      document.documentElement.dataset.snapped = String(snapped);
     }
   });
 
@@ -1895,6 +2004,15 @@ const SORTS = [
   ['size-asc', 'Smallest first', 'resize']
 ];
 
+/* The sort button carries the name of the current order. Nothing used to write
+   to it, so it read "Date added" whatever you picked. */
+function syncSortLabel() {
+  const span = $('#sort-label');
+  if (!span) return;
+  const found = SORTS.find(([key]) => key === state.settings.sort);
+  span.textContent = found ? found[1] : 'Date added';
+}
+
 function showSortMenu(x, y) {
   closeMenu();
   const menu = el('div', 'context-menu');
@@ -1905,6 +2023,7 @@ function showSortMenu(x, y) {
       closeMenu();
       await patchSettings({ sort: key });
       applySort();
+      syncSortLabel();
       renderLibrary();
     });
     menu.appendChild(b);
@@ -2071,14 +2190,63 @@ async function boot() {
   syncFilmstripButtons();
   syncApplyButton();
 
-  await scanLibrary(state.settings.photoFolder);
+  /* "Open with", a double-click, or a drag onto the exe.
+
+     This used to be wired after the library scan below, which broke it: the
+     nudge from the main process arrived while the renderer was still scanning
+     and nothing was listening, so the photo was dropped and the app opened on
+     the library. Two things fix it — subscribe first, and ask for the launch
+     file instead of only waiting to be told.
+
+     Whichever route wins, the file is opened once. Opening waits until the
+     library is in place, because a photo that lives in the library should then
+     be able to page through the whole folder rather than sit alone in a list of
+     one. */
+  let pendingOpen = null;
+  let opening = false;
+  const flushOpen = () => {
+    if (opening) return;
+    const target = pendingOpen;
+    if (!target) return;
+    opening = true;
+    pendingOpen = null;
+    libraryReady.then(async () => {
+      opening = false;
+      if (state.viewImage && state.viewImage.path === target.file) return;
+      await showViewerForExternal(target.file);
+      // Launched through the shell's "Edit in Lehtratuh" verb: the viewer is up,
+      // so the editor opens on the photo that was asked for.
+      if (target.edit) openEditor(target.file);
+    });
+  };
+  /* Accepts either a bare path or { file, edit }. The edit flag comes from the
+     installer's "Edit in Lehtratuh" verb. */
+  const openFromShell = (payload) => {
+    if (!payload) return;
+    const file = typeof payload === 'string' ? payload : payload.file;
+    if (!file) return;
+    pendingOpen = { file, edit: !!(payload && payload.edit) };
+    flushOpen();
+  };
+
+  let releaseLibrary;
+  const libraryReady = new Promise((res) => { releaseLibrary = res; });
 
   window.lh.events.ready((payload) => {
-    if (payload && payload.startFile) showViewerForExternal(payload.startFile);
+    if (payload && payload.startFile) openFromShell({ file: payload.startFile, edit: payload.startEdit });
   });
-  window.lh.events.openFile((file) => showViewerForExternal(file));
+  window.lh.events.openFile((file) => openFromShell(file));
   // Launched with no file from the taskbar jump list: go straight to the picker.
   window.lh.events.pickFile(() => commands.open());
+
+  // The launch file itself, pulled rather than trusted to a push.
+  window.lh.takeOpen()
+    .then((pending) => { if (pending) openFromShell(pending); })
+    .catch(() => {});
+
+  await scanLibrary(state.settings.photoFolder);
+  releaseLibrary();
+  flushOpen();
 
   const max = await window.lh.win.isMaximized();
   document.documentElement.dataset.maximized = String(max);
