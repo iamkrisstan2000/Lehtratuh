@@ -10,6 +10,18 @@ Everything runs on your own PC.
 
 ---
 
+## Screenshots 
+
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130117" src="https://github.com/user-attachments/assets/33371468-7357-4c9c-88a3-924a1d6364d3" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130112" src="https://github.com/user-attachments/assets/e86f6e65-ab42-493e-ab61-5bfe6e5291c6" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130107" src="https://github.com/user-attachments/assets/1db994b0-2bde-4f8b-b4ee-41978119bf97" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130045" src="https://github.com/user-attachments/assets/b4efde7f-47fd-42e7-a9d6-a832bbeb8b3a" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130036" src="https://github.com/user-attachments/assets/63fee233-9e2c-46a1-8ebd-247e22dfe884" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130028" src="https://github.com/user-attachments/assets/029f2ced-8a66-4006-9375-7e6cc5e13c18" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-02 130013" src="https://github.com/user-attachments/assets/81088e9a-d6bd-4dac-9411-7308e6327077" />
+
+---
+
 ## Install
 
 1. Download **`Lehtratuh-Setup-1.5.0.exe`**.
